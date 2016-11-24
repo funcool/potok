@@ -1,0 +1,311 @@
+= potok
+:sectlinks:
+
+Potok is a tiny (100LOC) reactive streams based state management toolkit for
+ClojureScript.
+
+[source, clojure]
+----
+[funcool/potok "1.0.0"]
+----
+
+
+== User Guide
+
+Potok lies on top of two concepts: *events* and *reactive store*.
+
+
+=== Events
+
+Events are entities that are responsible to represent some kind of
+action that can be synchronous (simple state transformation),
+asynchronous (some kind of ajax call) or side effect.
+
+
+==== Update event
+
+The *update* event represents the simple synchronos state
+transformation. Let's define one event of this type:
+
+[source, clojure]
+----
+(require '[potok.core :as ptk])
+
+(defrecord Increment []
+  ptk/UpdateEvent
+  (update [_ state]
+    (update state :counter (fnil inc 0))))
+----
+
+As you can observe, it consists just in a type defined using
+*defrecord* facility and implementing a `UpdateEvent` protocol. The
+`update` function receives the current state as argument and should
+return the transformed state.
+
+In fact, this is very similar to a simple reducer function, and
+the same event can be defined as plain function like that:
+
+[source, clojure]
+----
+(defn increment
+  [state]
+  (update state :counter (fnil inc 0))
+----
+
+Although is very simple to define this kind of events, the type based
+events are more recommended, specially when you want pase arguments to
+the event:
+
+[source, clojure]
+----
+(defrecord IncrementBy [n]
+  ptk/UpdateEvent
+  (update [_ state]
+    (update state :counter (fnil + 0) n)))
+----
+
+The same event will look much uglier if we define it using functions
+syntax:
+
+[source, clojure]
+----
+(defn increment-by
+  [n]
+  (fn [state]
+    (update state :counter (fnil inc 0))))
+----
+
+
+==== Watch event
+
+The *watch* event represents an asynchronous operation that ends on
+posible state transformation. Let's define one:
+
+[source, clojure]
+----
+(require '[beicon.core :as rx])
+
+(defrecord DelayedIncrement []
+  ptk/WatchEvent
+  (watch [_ state stream]
+    (->> (rx/just (->Increment)) ; create a instance of `Increment` event
+         (rx/delay 100))))       ; delay the stream for 100ms
+----
+
+As you can obseve, the watch event also reveives the current state and
+should return a stream of other events. With this approach the event
+always has one responsability: or doing async operation of performing
+state transformation.
+
+The additional `stream` parameter to `watch` function represents the main stream
+where all events will arrive, so you can build logic that need to be synchronized
+with other events or just handle some kind of cancellation.
+
+
+==== Effect event
+
+The *effect* event represents a side effectfull action. Let's see how it look:
+
+[source, clojure]
+----
+(defrecord Notify [title message]
+  ptk/EffectEvent
+  (effect [_ state stream]
+    (let [params #js {:body message}]
+      (js/Notification. title params))))
+----
+
+As usual, it receives the current state and the stream, in the same
+way as the *watch* event, with the exception that the return value is
+completly ignored.
+
+
+=== Store
+
+In previous section we have seen about events, and the *store* is the object
+that processes that events. It has the following responsabilities:
+
+- Holding the application state
+- Process incoming events and emit the changes using reactive streams.
+
+In contrast to other similar approaches to implement store (such that
+re-frame or redux), this approach does not allows to access directly
+to the holded state, you only can watch it and materialize it to some
+reference type like ClojureScript *atom*. This ensures that the state
+can only be transformed using events.
+
+For create store you just need execute the `potok.core/store` function:
+
+[source, clojure]
+----
+(def store (ptk/store))
+----
+
+If no arguments is passed to `store` function, the initial state is
+initialized as `nil`. This is how you can provide an initial state:
+
+[source, clojure]
+----
+(def store (ptk/store {:state {:counter 0}}))
+----
+
+In order to be able to access to the state, we need to materialize
+it. A good approach is just using an atom to hold the materialized
+state:
+
+[source, clojure]
+----
+(defonce state-view
+  (rx/to-atom store))
+----
+
+Now that we have created a store, and a materialized view of the
+state. Let's start emiting events:
+
+[source, clojure]
+----
+(ptk/emit! store (->Increment))
+----
+
+Now if you observe the state dereferencing the `state-view` atom,
+you will see it transformed:
+
+[source, clojure]
+----
+@state-view
+;; => {:counter 1}
+----
+
+=== Error Handling
+
+In many circumstaces we found that exceptions are raised inside the
+event. For this cases *potok* comes with builtin mechanism for
+handlign errors.
+
+Let see some code:
+
+[source, clojure]
+----
+(defn- on-error
+  [error]
+  (js/console.error error)
+  (throw error))
+
+(def store (ptk/store {:on-error on-error}))
+----
+
+Now, if an exception is raised inside an event it will report it to
+this function. It is mandatory to reraise the error in order to have
+the store work as expected.
+
+
+== Developers Guide
+
+=== Philosophy
+
+Five most important rules:
+
+- Beautiful is better than ugly.
+- Explicit is better than implicit.
+- Simple is better than complex.
+- Complex is better than complicated.
+- Readability counts.
+
+All contributions to _potok_ should keep these important rules in mind.
+
+
+=== Contributing
+
+Unlike Clojure and other Clojure contributed libraries _potok_ does not have many
+restrictions for contributions. Just open an issue or pull request.
+
+
+=== Source Code
+
+_potok_ is open source and can be found on
+link:https://github.com/funcool/potok[github].
+
+You can clone the public repository with this command:
+
+[source,text]
+----
+git clone https://github.com/funcool/potok
+----
+
+
+== FAQ
+
+=== What is the motivation behind *potok*?
+
+My main motivarion is just simplify the amount of concepts that user
+needs to learn in order to use one-way-flow state management. Reactive
+streams fits very well for handle it, so I decide not reinvent the
+wheel, and just use them (in contrast to re-frame or redux as
+example).
+
+*Potok* is has very very small amount of code that can be understand
+and maintained by almost anyone that makes the decision of include it
+in the production without the fear of this library becomes
+unmaintained.
+
+It is just 100 lines of pretty well commented code.
+
+
+=== Can I implement more than one event protocol at same time?
+
+Yes, in fact is a very useful approach for perform optimistic
+updates. Because the *update* event is always the first processed and
+the *watch* and *effect* events will receive the state already
+transformed by the `update` function.
+
+
+=== How I can use *potok* with react based web applications?
+
+Very easy, once you have materialized the state into an atom, you can
+consume this atom from any react based toolkit (*rum*, *reagent*, etc)
+in the same way as you will consume a plain atom with the state.
+
+The unique difference is that if you want to perform a state
+transformation, you need to define and emit an event for it instead of
+direct state atom transformation.
+
+
+=== There are some real applications using this pattern?
+
+Yes, many of them are private, but there are one public:
+link:https://github.com/uxbox/uxbox[uxbox]. It is pretty big project and it
+demostrates that this approach scales very well.
+
+
+
+=== License
+
+
+_potok_ is licensed under BSD (2-Clause) license:
+
+----
+Copyright (c) 2015-2016 Andrey Antukh <niwi@niwi.nz>
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+----
