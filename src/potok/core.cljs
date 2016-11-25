@@ -85,16 +85,11 @@
   (update [func state]
     (func state)))
 
-(def ^:dynamic *on-error* nil)
-
 (defn- default-error-handler
   [error]
-  (if (fn? *on-error*)
-    (*on-error* error)
-    (do
-      (js/console.error "Using default error handler, consider using your own!")
-      (js/console.error error)
-      (throw error))))
+  (js/console.error "Using default error handler, consider using your own!")
+  (js/console.error error)
+  (throw error))
 
 (enable-console-print!)
 
