@@ -273,8 +273,8 @@ direct state atom transformation.
 === There are some real applications using this pattern?
 
 Yes, many of them are private, but there are one public:
-link:https://github.com/uxbox/uxbox[uxbox]. It is pretty big project and it
-demostrates that this approach scales very well.
+link:https://github.com/uxbox/uxbox[uxbox]. It is pretty big project
+and it demostrates that this approach scales very well.
 
 
 
