@@ -130,7 +130,7 @@ need to be synchronized with other events or just handle some kind of
 cancellation.
 
 
-==== Effect event
+==== Effect Event
 
 The *effect* event represents a side effectfull action. In the same
 way as the *watch* event, it receives the current state and the main
