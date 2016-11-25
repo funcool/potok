@@ -71,7 +71,7 @@ can be defined using plain clojurescript function:
 
 Although is very simple to define this kind of events, the type based
 events are more recommended, specially when you want pase arguments to
-the event:
+the event. Let's see an example:
 
 [source, clojure]
 ----
@@ -93,10 +93,14 @@ syntax:
 ----
 
 
-==== Watch event
+==== Watch Event
 
-The *watch* event represents an asynchronous operation that ends on
-posible state transformation. Let's define one:
+Apart of the simple state transformations, the applications usually
+need perform asynchronous operations such as call remote api, access
+to local database, etc. There are where the *watch* event plays they
+role. They are designed to handle asynchronous operations.
+
+Let's see how it looks:
 
 [source, clojure]
 ----
@@ -109,19 +113,30 @@ posible state transformation. Let's define one:
          (rx/delay 100))))       ; delay the stream for 100ms
 ----
 
-As you can obseve, the watch event also reveives the current state and
-should return a stream of other events. With this approach the event
-always has one responsability: or doing async operation of performing
-state transformation.
 
-The additional `stream` parameter to `watch` function represents the main stream
-where all events will arrive, so you can build logic that need to be synchronized
-with other events or just handle some kind of cancellation.
+The responsability of `watch` function is perform an asyncrhonous
+operation and return a stream of one or more other events. In the
+example you can observe that it just return a stream of one
+`Increment` event instance delayed 100 milliseconds (emulating some
+latency).
+
+That stream will be reinjected into the main stream and that events
+will be processed in the same way as if you emit them with
+`potok.core/emit!` function.
+
+The additional `stream` parameter to `watch` function represents the
+main stream where all events will arrive, so you can build logic that
+need to be synchronized with other events or just handle some kind of
+cancellation.
 
 
 ==== Effect event
 
-The *effect* event represents a side effectfull action. Let's see how it look:
+The *effect* event represents a side effectfull action. In the same
+way as the *watch* event, it receives the current state and the main
+stream as arguments.
+
+Let's see how it look:
 
 [source, clojure]
 ----
@@ -132,18 +147,17 @@ The *effect* event represents a side effectfull action. Let's see how it look:
       (js/Notification. title params))))
 ----
 
-As usual, it receives the current state and the stream, in the same
-way as the *watch* event, with the exception that the return value is
-completly ignored.
+The return value of the `effect` function is completly ignored.
 
 
 === Store
 
-In previous section we have seen about events, and the *store* is the object
-that processes that events. It has the following responsabilities:
+In previous section we have seen about events, the *store* is the
+object that processes them. It has the following responsabilities:
 
-- Holding the application state
-- Process incoming events and emit the changes using reactive streams.
+- Hold the application state.
+- Process incoming events.
+- Emit the changes using reactive streams.
 
 In contrast to other similar approaches to implement store (such that
 re-frame or redux), this approach does not allows to access directly
