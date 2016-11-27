@@ -26,6 +26,18 @@
 
       (ptk/emit! store (->IncrementBy 1)))))
 
+
+(t/deftest asynchronous-state-transformation-test
+  (t/async done
+    (let [store (ptk/store {:state {:counter 0}})]
+      (-> (rx/take 1 store)
+          (rx/subscribe (fn [{:keys [counter]}]
+                          (t/is (= counter 2)))
+                        nil
+                        done))
+
+      (ptk/emit! store (->AsyncIncrementBy 2)))))
+
 (set! *main-cli-fn* #(t/run-tests))
 
 (defmethod t/report [:cljs.test/default :end-run-tests]
