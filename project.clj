@@ -4,8 +4,8 @@
   :license {:name "BSD (2-Clause)"
             :url "http://opensource.org/licenses/BSD-2-Clause"}
   :dependencies [[org.clojure/clojure "1.8.0" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.229" :scope "provided"]
-                 [funcool/beicon "2.3.0"]]
+                 [org.clojure/clojurescript "1.9.293" :scope "provided"]
+                 [funcool/beicon "2.5.0"]]
   :deploy-repositories {"releases" :clojars
                         "snapshots" :clojars}
   :source-paths ["src" "assets"]
