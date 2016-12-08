@@ -89,7 +89,7 @@
   [error]
   (js/console.warn "Using default error handler, consider using your own!")
   (js/console.error error)
-  (throw error))
+  (rx/throw error))
 
 (enable-console-print!)
 
