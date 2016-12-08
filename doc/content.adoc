@@ -18,7 +18,7 @@ Just add this to yours dependencies:
 
 [source, clojure]
 ----
-[funcool/potok "1.0.0"]
+[funcool/potok "1.1.0"]
 ----
 
 
@@ -180,6 +180,13 @@ initialized as `nil`. This is how you can provide an initial state:
 (def store (ptk/store {:state {:counter 0}}))
 ----
 
+The `store` object from the user perspective is a reactive stream that
+emits the state each time it is transformed.
+
+As internally it is implemented using *BehaviorSubject* each new
+subscription always receives the latest state object followed by the
+transformed state objects by events.
+
 In order to be able to access to the state, we need to materialize
 it. A good approach is just using an atom to hold the materialized
 state:
@@ -219,15 +226,13 @@ Let see some code:
 ----
 (defn- on-error
   [error]
-  (js/console.error error)
-  (throw error))
+  (js/console.error error))
 
 (def store (ptk/store {:on-error on-error}))
 ----
 
 Now, if an exception is raised inside an event it will report it to
-this function. It is mandatory to reraise the error in order to have
-the store work as expected.
+this function. The return value of on-error callback is ignored.
 
 
 == Developers Guide
