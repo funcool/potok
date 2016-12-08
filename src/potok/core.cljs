@@ -93,6 +93,8 @@
 
 (enable-console-print!)
 
+(def ^:private noop (constantly nil))
+
 ;; --- Public API
 
 (defn store
@@ -108,38 +110,50 @@
   used for advanced use cases, where one store is not
   enough."
   ([] (store nil))
-  ([{:keys [on-error state]
-     :or {on-error default-error-handler}}]
+  ([{:keys [on-error state] :or {on-error default-error-handler}}]
    {:pre [(fn? on-error)]}
-   (let [bus (rx/bus)
-         state-s  (->> (rx/filter update? bus)
-                       (rx/scan #(update %2 %1) state)
-                       (rx/merge (rx/just state))
-                       (rx/catch on-error)
-                       (rx/retry 1024)
-                       (rx/share))
-         watch-s  (->> (rx/filter watch? bus)
-                       (rx/with-latest-from vector state-s)
-                       (rx/flat-map (fn [[event state]] (watch event state bus)))
-                       (rx/catch on-error)
-                       (rx/retry 1024))
-         effect-s (->> (rx/filter effect? bus)
-                       (rx/with-latest-from vector state-s))
-         subw (rx/on-value watch-s #(rx/push! bus %))
-         sube (rx/on-value effect-s (fn [[event state]] (effect event state bus)))
-         stoped? (volatile! false)]
-     (specify! state-s
-       Store
-       (-push [_ event]
-         (when @stoped? (throw (ex-info "store already terminated" {})))
-         (rx/push! bus event))
+   (letfn [(process-watch [input-sub [event state]]
+             (watch event state input-sub))
+           (process-update [input-sub state event]
+             (update event state))
+           (handle-effect [input-sub [event state]]
+             (effect event state input-sub))
+           (handle-error [error]
+             (on-error error)
+             (rx/throw error))]
+     (let [input-sb (rx/subject)
+           state-sb (rx/behavior-subject state)
+           state-sm (->> (rx/filter update? input-sb)
+                         (rx/scan (partial process-update input-sb) state)
+                         (rx/catch handle-error)
+                         (rx/retry 1024))
+           watch-sm (->> (rx/filter watch? input-sb)
+                         (rx/with-latest-from vector state-sb)
+                         (rx/flat-map (partial process-watch input-sb))
+                         (rx/catch handle-error)
+                         (rx/retry 1024))
+           effct-sm (->> (rx/filter effect? input-sb)
+                         (rx/with-latest-from vector state-sb)
+                         (rx/do (partial handle-effect input-sb))
+                         (rx/catch handle-error)
+                         (rx/retry 1024))
+           subs     (rx/subscribe state-sm state-sb)
+           subw     (rx/subscribe watch-sm input-sb)
+           sube     (rx/subscribe effct-sm noop)
+           stoped?  (volatile! false)]
+       (specify! state-sb
+         Store
+         (-push [_ event]
+           (when @stoped? (throw (ex-info "store already terminated" {})))
+           (rx/push! input-sb event))
 
-       Object
-       (close [_]
-         (vreset! stoped? true)
-         (.unsubscribe subw)
-         (.unsubscribe sube)
-         (rx/end! bus))))))
+         Object
+         (close [_]
+           (vreset! stoped? true)
+           (.unsubscribe subs)
+           (.unsubscribe subw)
+           (.unsubscribe sube)
+           (rx/end! input-sb)))))))
 
 (defn emit!
   "Emits an event or a collection of them into the default store.
