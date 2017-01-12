@@ -56,7 +56,8 @@
 ;; An abstraction used for send data to the store.
 
 (defprotocol Store
-  (^:private -push [_ event] "Push event into the stream."))
+  (^:private -push [_ event] "Push event into the stream.")
+  (^:private -input-stream [_] "Returns the internal input stream/subject."))
 
 ;; --- Predicates
 
@@ -147,6 +148,11 @@
            (when @stoped? (throw (ex-info "store already terminated" {})))
            (rx/push! input-sb event))
 
+         (-input-stream [_]
+           (->> input-sb
+                (rx/map identity)
+                (rx/share)))
+
          Object
          (close [_]
            (vreset! stoped? true)
@@ -166,3 +172,11 @@
   ([store event & more]
    {:pre [(satisfies? Store store)]}
    (run! (partial -push store) (cons event more))))
+
+(defn input-stream
+  "Returns the internal input stream of the store. Should
+  be used by third party integration that want use store
+  as event bus not only with defined events."
+  [store]
+  {:pre [(satisfies? Store store)]}
+  (-input-stream store))
