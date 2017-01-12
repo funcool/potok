@@ -1,5 +1,12 @@
 # Changelog #
 
+## Version 1.2.0 ##
+
+Date: 2017-01-12
+
+- Add the ability to retrieve the input stream from the store.
+
+
 ## Version 1.1.0 ##
 
 Date: 2016-12-08
