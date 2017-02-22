@@ -92,9 +92,8 @@
   (js/console.error error)
   (rx/throw error))
 
-(enable-console-print!)
-
 (def ^:private noop (constantly nil))
+(def ^:private max-safe-integer js/Number.MAX_SAFE_INTEGER)
 
 ;; --- Public API
 
@@ -127,19 +126,19 @@
            state-sm (->> (rx/filter update? input-sb)
                          (rx/scan (partial process-update input-sb) state)
                          (rx/catch handle-error)
-                         (rx/retry 1024))
+                         (rx/retry max-safe-integer))
            watch-sm (->> (rx/filter watch? input-sb)
-                         (rx/with-latest-from vector state-sb)
+                         (rx/with-latest vector state-sb)
                          (rx/flat-map (partial process-watch input-sb))
                          (rx/catch handle-error)
-                         (rx/retry 1024))
+                         (rx/retry max-safe-integer))
            effct-sm (->> (rx/filter effect? input-sb)
-                         (rx/with-latest-from vector state-sb)
+                         (rx/with-latest vector state-sb)
                          (rx/do (partial handle-effect input-sb))
                          (rx/catch handle-error)
-                         (rx/retry 1024))
-           subs     (rx/subscribe state-sm state-sb)
-           subw     (rx/subscribe watch-sm input-sb)
+                         (rx/retry max-safe-integer))
+           subs     (rx/subscribe-with state-sm state-sb)
+           subw     (rx/subscribe-with watch-sm input-sb)
            sube     (rx/subscribe effct-sm noop)
            stoped?  (volatile! false)]
        (specify! state-sb
@@ -153,12 +152,12 @@
                 (rx/map identity)
                 (rx/share)))
 
-         Object
-         (close [_]
+         rx/ICancellable
+         (-cancel [_]
            (vreset! stoped? true)
-           (.unsubscribe subs)
-           (.unsubscribe subw)
-           (.unsubscribe sube)
+           (rx/cancel! subs)
+           (rx/cancel! subw)
+           (rx/cancel! sube)
            (rx/end! input-sb)))))))
 
 (defn emit!
