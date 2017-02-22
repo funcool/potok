@@ -1,5 +1,17 @@
 # Changelog #
 
+## Version 2.0.0 ##
+
+Date: 2017-02-22
+
+- Update to beicon 3.1.0.
+- Store now implement `beicon.core/ICancellable` protocol
+  instead of plain `.close` method.
+- Set error retry count to `Number.MAX_SAFE_INTEGER`
+  instead of small `1024` number.
+- Remove `enable-console-print!`.
+
+
 ## Version 1.2.0 ##
 
 Date: 2017-01-12
