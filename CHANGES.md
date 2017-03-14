@@ -1,5 +1,13 @@
 # Changelog #
 
+## Version 2.1.0 ##
+
+Date: 2017-03-14
+
+- Update to beicon 3.2.0
+- Update cljs compiler to 1.9.495
+
+
 ## Version 2.0.0 ##
 
 Date: 2017-02-22
