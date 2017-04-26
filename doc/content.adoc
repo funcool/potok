@@ -14,7 +14,7 @@ ClojureScript.
 
 === Install
 
-Just add this to yours dependencies:
+Just add this to your dependencies:
 
 [source, clojure]
 ----
@@ -29,20 +29,20 @@ Potok lies on top of two concepts: *events* and *reactive store*.
 
 === Events
 
-Events are entities that your application will emit in order to send
-data or action to the store. They will be emited using
-`potok.core/emit!` function. There are three type of events:
+The events are entities that your application will emit in order to send data or
+action to the store. They will be emitted using `potok.core/emit!` function.
+There are three types of events:
 
 - *update*: that represents a synchronous state transformation.
 - *watch*: that represents an asynchronous operation.
 - *effect*: that represents a side effectful operation.
 
-Let see a detailed explanation of each event type:
+Let's see a detailed explanation of each event type:
 
 ==== Update Event
 
-The *update* event represents the simple synchronos state
-transformation. It just consists in a type defined using *defrecord*,
+The *update* event represents the simple synchronous state
+transformation. It just consists of a type defined using *defrecord*,
 implementing a `UpdateEvent` protocol.
 
 The `update` function receives the current state as argument and
@@ -58,9 +58,9 @@ should return the transformed state. Let's see an example:
     (update state :counter (fnil inc 0))))
 ----
 
-You may be thinking, the signature of the `update` function is very similar
-to a reduce function. And in fact, just does that, the state reduction, and it
-can be defined using plain clojurescript function:
+You may be thinking, the signature of the `update` function is very similar to a
+reduce function. And in fact, it does just that the state reduction, and it can
+be defined using a plain ClojureScript function:
 
 [source, clojure]
 ----
@@ -69,8 +69,8 @@ can be defined using plain clojurescript function:
   (update state :counter (fnil inc 0))
 ----
 
-Although is very simple to define this kind of events, the type based
-events are more recommended, specially when you want pase arguments to
+Although it is very simple to define this kind of events as functions, the type
+based events are more recommended, especially when you want to pass arguments to
 the event. Let's see an example:
 
 [source, clojure]
@@ -78,26 +78,25 @@ the event. Let's see an example:
 (defrecord IncrementBy [n]
   ptk/UpdateEvent
   (update [_ state]
-    (update state :counter (fnil + 0) n)))
+    (update state :counter + n)))
 ----
 
-The same event will look much uglier if we define it using functions
-syntax:
+The same event would look much uglier if defined using function syntax:
 
 [source, clojure]
 ----
 (defn increment-by
   [n]
   (fn [state]
-    (update state :counter (fnil inc 0))))
+    (update state :counter + n)))
 ----
 
 
 ==== Watch Event
 
-Apart of the simple state transformations, the applications usually
-need perform asynchronous operations such as call remote api, access
-to local database, etc. There are where the *watch* event plays they
+Apart from the simple state transformations, applications usually
+need to perform asynchronous operations such as call remote API, access
+local database, etc. This is where the *watch* events play their
 role. They are designed to handle asynchronous operations.
 
 Let's see how it looks:
@@ -114,27 +113,25 @@ Let's see how it looks:
 ----
 
 
-The responsability of `watch` function is perform an asyncrhonous
-operation and return a stream of one or more other events. In the
-example you can observe that it just return a stream of one
-`Increment` event instance delayed 100 milliseconds (emulating some
-latency).
+The responsibility of the `watch` function is to perform an asynchronous
+operation and return a stream of one or more events. In the example, you can
+observe, that it just returns a stream of one `Increment` event instance delayed
+100 milliseconds (thus emulating some latency).
 
-That stream will be reinjected into the main stream and that events
-will be processed in the same way as if you emit them with
-`potok.core/emit!` function.
+That stream will be re-injected into the main stream and those events will be
+processed in the same way as if you emitted them with `potok.core/emit!`
+function.
 
-The additional `stream` parameter to `watch` function represents the
-main stream where all events will arrive, so you can build logic that
-need to be synchronized with other events or just handle some kind of
+The additional `stream` parameter to the `watch` function represents the main
+stream where all events will arrive, so you can build logic needed for a
+synchronization with other events or just a handling of some kind of a
 cancellation.
 
 
 ==== Effect Event
 
-The *effect* event represents a side effectfull action. In the same
-way as the *watch* event, it receives the current state and the main
-stream as arguments.
+The *effect* event represents a side effectfull action. In the same way as the
+*watch* event, it receives the current state and the main stream as arguments.
 
 Let's see how it look:
 
@@ -147,49 +144,48 @@ Let's see how it look:
       (js/Notification. title params))))
 ----
 
-The return value of the `effect` function is completly ignored.
+The return value of the `effect` function is completely ignored.
 
 
 === Store
 
-In previous section we have seen about events, the *store* is the
-object that processes them. It has the following responsabilities:
+In the previous section we have seen events, the *store* is the object that
+processes them. It has the following responsibilities:
 
 - Hold the application state.
 - Process incoming events.
 - Emit the changes using reactive streams.
 
-In contrast to other similar approaches to implement store (such that
-re-frame or redux), this approach does not allows to access directly
-to the holded state, you only can watch it and materialize it to some
-reference type like ClojureScript *atom*. This ensures that the state
-can only be transformed using events.
+In the contrast to other similar approaches to implementing store (such that
+re-frame or redux), this approach does not allow to access the state directly,
+you only can watch it and materialize it to some reference type like
+ClojureScript *atom*. This ensures that the state can only be transformed using
+events.
 
-For create store you just need execute the `potok.core/store` function:
+To create store you just need to execute the `potok.core/store` function:
 
 [source, clojure]
 ----
 (def store (ptk/store))
 ----
 
-If no arguments is passed to `store` function, the initial state is
-initialized as `nil`. This is how you can provide an initial state:
+If no arguments is passed to `store` function, the initial state is initialized
+as `nil`. This is how you can provide an initial state:
 
 [source, clojure]
 ----
 (def store (ptk/store {:state {:counter 0}}))
 ----
 
-The `store` object from the user perspective is a reactive stream that
-emits the state each time it is transformed.
+The `store` object from the user perspective is a reactive stream that emits the
+state each time it is transformed.
 
-As internally it is implemented using *BehaviorSubject* each new
-subscription always receives the latest state object followed by the
-transformed state objects by events.
+Internally it is implemented using *BehaviorSubject* and each new subscription
+always receives the latest state object followed by state objects transformed by
+events.
 
-In order to be able to access to the state, we need to materialize
-it. A good approach is just using an atom to hold the materialized
-state:
+In order to be able to access the state, we need to materialize
+it. A good approach is using just an atom to hold the materialized state:
 
 [source, clojure]
 ----
@@ -197,16 +193,16 @@ state:
   (rx/to-atom store))
 ----
 
-Now that we have created a store, and a materialized view of the
-state. Let's start emiting events:
+Now that we have created a store, and a materialized view of the state. Let's
+start to emit events:
 
 [source, clojure]
 ----
 (ptk/emit! store (->Increment))
 ----
 
-Now if you observe the state dereferencing the `state-view` atom,
-you will see it transformed:
+Now if you observe the state dereferencing the `state-view` atom, you will see
+it transformed:
 
 [source, clojure]
 ----
@@ -216,11 +212,10 @@ you will see it transformed:
 
 === Error Handling
 
-In many circumstaces we found that exceptions are raised inside the
-event. For this cases *potok* comes with builtin mechanism for
-handlign errors.
+In many circumstances we found, that exception is raised inside the event. For
+this case *potok* comes with the built-in mechanism for handling errors.
 
-Let see some code:
+Let's see some code:
 
 [source, clojure]
 ----
@@ -231,8 +226,8 @@ Let see some code:
 (def store (ptk/store {:on-error on-error}))
 ----
 
-Now, if an exception is raised inside an event it will report it to
-this function. The return value of on-error callback is ignored.
+Now, if an exception is raised inside an event it will report it to this
+function. The return value of on-error callback is ignored.
 
 
 == Developers Guide
@@ -253,7 +248,7 @@ All contributions to _potok_ should keep these important rules in mind.
 === Contributing
 
 Unlike Clojure and other Clojure contributed libraries _potok_ does not have many
-restrictions for contributions. Just open an issue or pull request.
+restrictions on contributions. Just open an issue or pull request.
 
 
 === Source Code
@@ -273,45 +268,53 @@ git clone https://github.com/funcool/potok
 
 === What is the motivation behind *potok*?
 
-My main motivarion is just simplify the amount of concepts that user
-needs to learn in order to use one-way-flow state management. Reactive
-streams fits very well for handle it, so I decide not reinvent the
-wheel, and just use them (in contrast to re-frame or redux as
-example).
+My main motivation is just to simplify a number of concepts that user needs to
+learn in order to use one-way-flow state management. Reactive streams fit very
+well this purpose, so I decided not to reinvent the wheel and just use them (in
+contrast to re-frame or redux as an example).
 
-*Potok* is has very very small amount of code that can be understand
-and maintained by almost anyone that makes the decision of include it
-in the production without the fear of this library becomes
-unmaintained.
+*Potok* has very small amount of the code and can be understood and maintained
+by almost anyone which makes the decision to include it in the production,
+without the fear of this library becomes unmaintained, easier.
 
-It is just 100 lines of pretty well commented code.
+It is just 100 lines of the pretty well-commented code.
 
 
-=== Can I implement more than one event protocol at same time?
+=== Can I implement more than one event protocol at the same time?
 
-Yes, in fact is a very useful approach for perform optimistic
-updates. Because the *update* event is always the first processed and
+Yes, in fact, it is a very useful approach to performing optimistic
+updates, because the *update* event is always the first processed and
 the *watch* and *effect* events will receive the state already
 transformed by the `update` function.
 
 
-=== How I can use *potok* with react based web applications?
+=== How can I use *potok* with React.js based web applications?
 
-Very easy, once you have materialized the state into an atom, you can
-consume this atom from any react based toolkit (*rum*, *reagent*, etc)
-in the same way as you will consume a plain atom with the state.
+Very easy, once you have materialized the state into an atom, you can consume
+this atom from any react based toolkit (*rum*, *reagent*, etc) in the same way,
+as you will consume a plain atom with the state.
 
-The unique difference is that if you want to perform a state
-transformation, you need to define and emit an event for it instead of
-direct state atom transformation.
+The unique difference is that if you want to perform a state transformation, you
+need to define and emit an event for it instead of direct state atom's
+transformation.
 
 
-=== There are some real applications using this pattern?
+===  Are there some real applications using this pattern?
 
-Yes, many of them are private, but there are one public:
-link:https://github.com/uxbox/uxbox[uxbox]. It is pretty big project
-and it demostrates that this approach scales very well.
+Yes, many of them are private, but there is one public:
+link:https://github.com/uxbox/uxbox[uxbox]. It is the pretty big project and it
+demonstrates that this approach scales very well.
 
+Also, there are some open source projects not connected to the Funcool
+organization:
+
+- link:https://github.com/pepe/potok-rumu[potok-rumu] - just example project
+  with the simple structure, for showing the potok capabilities. It also uses rum
+  for rendering.
+- link:https://github.com/pepe/showrum[showrum] - presentation software, which
+  uses potok for state management
+- link:https://github.com/LastStar/proud[proud] - highly opinionated boot
+  template for generating new projects with potok and rum setup
 
 
 == License
@@ -320,7 +323,7 @@ and it demostrates that this approach scales very well.
 _potok_ is licensed under BSD (2-Clause) license:
 
 ----
-Copyright (c) 2015-2016 Andrey Antukh <niwi@niwi.nz>
+Copyright (c) 2015-2017 Andrey Antukh <niwi@niwi.nz>
 
 All rights reserved.
 
