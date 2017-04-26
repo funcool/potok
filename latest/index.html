@@ -108,9 +108,9 @@
 <li><a href="#faq">FAQ</a>
 <ul class="sectlevel2">
 <li><a href="#what-is-the-motivation-behind-strong-potok-strong">What is the motivation behind <strong>potok</strong>?</a></li>
-<li><a href="#can-i-implement-more-than-one-event-protocol-at-same-time">Can I implement more than one event protocol at same time?</a></li>
-<li><a href="#how-i-can-use-strong-potok-strong-with-react-based-web-applications">How I can use <strong>potok</strong> with react based web applications?</a></li>
-<li><a href="#there-are-some-real-applications-using-this-pattern">There are some real applications using this pattern?</a></li>
+<li><a href="#can-i-implement-more-than-one-event-protocol-at-the-same-time">Can I implement more than one event protocol at the same time?</a></li>
+<li><a href="#how-can-i-use-strong-potok-strong-with-react-js-based-web-applications">How can I use <strong>potok</strong> with React.js based web applications?</a></li>
+<li><a href="#are-there-some-real-applications-using-this-pattern">Are there some real applications using this pattern?</a></li>
 </ul>
 </li>
 <li><a href="#license">License</a></li>
@@ -128,7 +128,7 @@ ClojureScript.</p>
 <div class="sect2">
 <h3 id="install"><a class="link" href="#install">Install</a></h3>
 <div class="paragraph">
-<p>Just add this to yours dependencies:</p>
+<p>Just add this to your dependencies:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -147,9 +147,9 @@ ClojureScript.</p>
 <div class="sect2">
 <h3 id="events"><a class="link" href="#events">Events</a></h3>
 <div class="paragraph">
-<p>Events are entities that your application will emit in order to send
-data or action to the store. They will be emited using
-<code>potok.core/emit!</code> function. There are three type of events:</p>
+<p>The events are entities that your application will emit in order to send data or
+action to the store. They will be emitted using <code>potok.core/emit!</code> function.
+There are three types of events:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -165,13 +165,13 @@ data or action to the store. They will be emited using
 </ul>
 </div>
 <div class="paragraph">
-<p>Let see a detailed explanation of each event type:</p>
+<p>Let&#8217;s see a detailed explanation of each event type:</p>
 </div>
 <div class="sect3">
 <h4 id="update-event"><a class="link" href="#update-event">Update Event</a></h4>
 <div class="paragraph">
-<p>The <strong>update</strong> event represents the simple synchronos state
-transformation. It just consists in a type defined using <strong>defrecord</strong>,
+<p>The <strong>update</strong> event represents the simple synchronous state
+transformation. It just consists of a type defined using <strong>defrecord</strong>,
 implementing a <code>UpdateEvent</code> protocol.</p>
 </div>
 <div class="paragraph">
@@ -189,9 +189,9 @@ should return the transformed state. Let&#8217;s see an example:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>You may be thinking, the signature of the <code>update</code> function is very similar
-to a reduce function. And in fact, just does that, the state reduction, and it
-can be defined using plain clojurescript function:</p>
+<p>You may be thinking, the signature of the <code>update</code> function is very similar to a
+reduce function. And in fact, it does just that the state reduction, and it can
+be defined using a plain ClojureScript function:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -201,8 +201,8 @@ can be defined using plain clojurescript function:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Although is very simple to define this kind of events, the type based
-events are more recommended, specially when you want pase arguments to
+<p>Although it is very simple to define this kind of events as functions, the type
+based events are more recommended, especially when you want to pass arguments to
 the event. Let&#8217;s see an example:</p>
 </div>
 <div class="listingblock">
@@ -210,28 +210,27 @@ the event. Let&#8217;s see an example:</p>
 <pre class="pygments highlight"><code data-lang="clojure"><span class="tok-p">(</span><span class="tok-kd">defrecord </span><span class="tok-nv">IncrementBy</span> <span class="tok-p">[</span><span class="tok-nv">n</span><span class="tok-p">]</span>
   <span class="tok-nv">ptk/UpdateEvent</span>
   <span class="tok-p">(</span><span class="tok-nf">update</span> <span class="tok-p">[</span><span class="tok-nv">_</span> <span class="tok-nv">state</span><span class="tok-p">]</span>
-    <span class="tok-p">(</span><span class="tok-nf">update</span> <span class="tok-nv">state</span> <span class="tok-ss">:counter</span> <span class="tok-p">(</span><span class="tok-nf">fnil</span> <span class="tok-nb">+ </span><span class="tok-mi">0</span><span class="tok-p">)</span> <span class="tok-nv">n</span><span class="tok-p">)))</span></code></pre>
+    <span class="tok-p">(</span><span class="tok-nf">update</span> <span class="tok-nv">state</span> <span class="tok-ss">:counter</span> <span class="tok-nb">+ </span><span class="tok-nv">n</span><span class="tok-p">)))</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The same event will look much uglier if we define it using functions
-syntax:</p>
+<p>The same event would look much uglier if defined using function syntax:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code data-lang="clojure"><span class="tok-p">(</span><span class="tok-kd">defn </span><span class="tok-nv">increment-by</span>
   <span class="tok-p">[</span><span class="tok-nv">n</span><span class="tok-p">]</span>
   <span class="tok-p">(</span><span class="tok-k">fn </span><span class="tok-p">[</span><span class="tok-nv">state</span><span class="tok-p">]</span>
-    <span class="tok-p">(</span><span class="tok-nf">update</span> <span class="tok-nv">state</span> <span class="tok-ss">:counter</span> <span class="tok-p">(</span><span class="tok-nf">fnil</span> <span class="tok-nb">inc </span><span class="tok-mi">0</span><span class="tok-p">))))</span></code></pre>
+    <span class="tok-p">(</span><span class="tok-nf">update</span> <span class="tok-nv">state</span> <span class="tok-ss">:counter</span> <span class="tok-nb">+ </span><span class="tok-nv">n</span><span class="tok-p">)))</span></code></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="watch-event"><a class="link" href="#watch-event">Watch Event</a></h4>
 <div class="paragraph">
-<p>Apart of the simple state transformations, the applications usually
-need perform asynchronous operations such as call remote api, access
-to local database, etc. There are where the <strong>watch</strong> event plays they
+<p>Apart from the simple state transformations, applications usually
+need to perform asynchronous operations such as call remote API, access
+local database, etc. This is where the <strong>watch</strong> events play their
 role. They are designed to handle asynchronous operations.</p>
 </div>
 <div class="paragraph">
@@ -249,30 +248,28 @@ role. They are designed to handle asynchronous operations.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The responsability of <code>watch</code> function is perform an asyncrhonous
-operation and return a stream of one or more other events. In the
-example you can observe that it just return a stream of one
-<code>Increment</code> event instance delayed 100 milliseconds (emulating some
-latency).</p>
+<p>The responsibility of the <code>watch</code> function is to perform an asynchronous
+operation and return a stream of one or more events. In the example, you can
+observe, that it just returns a stream of one <code>Increment</code> event instance delayed
+100 milliseconds (thus emulating some latency).</p>
 </div>
 <div class="paragraph">
-<p>That stream will be reinjected into the main stream and that events
-will be processed in the same way as if you emit them with
-<code>potok.core/emit!</code> function.</p>
+<p>That stream will be re-injected into the main stream and those events will be
+processed in the same way as if you emitted them with <code>potok.core/emit!</code>
+function.</p>
 </div>
 <div class="paragraph">
-<p>The additional <code>stream</code> parameter to <code>watch</code> function represents the
-main stream where all events will arrive, so you can build logic that
-need to be synchronized with other events or just handle some kind of
+<p>The additional <code>stream</code> parameter to the <code>watch</code> function represents the main
+stream where all events will arrive, so you can build logic needed for a
+synchronization with other events or just a handling of some kind of a
 cancellation.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="effect-event"><a class="link" href="#effect-event">Effect Event</a></h4>
 <div class="paragraph">
-<p>The <strong>effect</strong> event represents a side effectfull action. In the same
-way as the <strong>watch</strong> event, it receives the current state and the main
-stream as arguments.</p>
+<p>The <strong>effect</strong> event represents a side effectfull action. In the same way as the
+<strong>watch</strong> event, it receives the current state and the main stream as arguments.</p>
 </div>
 <div class="paragraph">
 <p>Let&#8217;s see how it look:</p>
@@ -287,15 +284,15 @@ stream as arguments.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The return value of the <code>effect</code> function is completly ignored.</p>
+<p>The return value of the <code>effect</code> function is completely ignored.</p>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="store"><a class="link" href="#store">Store</a></h3>
 <div class="paragraph">
-<p>In previous section we have seen about events, the <strong>store</strong> is the
-object that processes them. It has the following responsabilities:</p>
+<p>In the previous section we have seen events, the <strong>store</strong> is the object that
+processes them. It has the following responsibilities:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -311,14 +308,14 @@ object that processes them. It has the following responsabilities:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>In contrast to other similar approaches to implement store (such that
-re-frame or redux), this approach does not allows to access directly
-to the holded state, you only can watch it and materialize it to some
-reference type like ClojureScript <strong>atom</strong>. This ensures that the state
-can only be transformed using events.</p>
+<p>In the contrast to other similar approaches to implementing store (such that
+re-frame or redux), this approach does not allow to access the state directly,
+you only can watch it and materialize it to some reference type like
+ClojureScript <strong>atom</strong>. This ensures that the state can only be transformed using
+events.</p>
 </div>
 <div class="paragraph">
-<p>For create store you just need execute the <code>potok.core/store</code> function:</p>
+<p>To create store you just need to execute the <code>potok.core/store</code> function:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -326,8 +323,8 @@ can only be transformed using events.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>If no arguments is passed to <code>store</code> function, the initial state is
-initialized as <code>nil</code>. This is how you can provide an initial state:</p>
+<p>If no arguments is passed to <code>store</code> function, the initial state is initialized
+as <code>nil</code>. This is how you can provide an initial state:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -335,18 +332,17 @@ initialized as <code>nil</code>. This is how you can provide an initial state:</
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>store</code> object from the user perspective is a reactive stream that
-emits the state each time it is transformed.</p>
+<p>The <code>store</code> object from the user perspective is a reactive stream that emits the
+state each time it is transformed.</p>
 </div>
 <div class="paragraph">
-<p>As internally it is implemented using <strong>BehaviorSubject</strong> each new
-subscription always receives the latest state object followed by the
-transformed state objects by events.</p>
+<p>Internally it is implemented using <strong>BehaviorSubject</strong> and each new subscription
+always receives the latest state object followed by state objects transformed by
+events.</p>
 </div>
 <div class="paragraph">
-<p>In order to be able to access to the state, we need to materialize
-it. A good approach is just using an atom to hold the materialized
-state:</p>
+<p>In order to be able to access the state, we need to materialize
+it. A good approach is using just an atom to hold the materialized state:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -355,8 +351,8 @@ state:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Now that we have created a store, and a materialized view of the
-state. Let&#8217;s start emiting events:</p>
+<p>Now that we have created a store, and a materialized view of the state. Let&#8217;s
+start to emit events:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -364,8 +360,8 @@ state. Let&#8217;s start emiting events:</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Now if you observe the state dereferencing the <code>state-view</code> atom,
-you will see it transformed:</p>
+<p>Now if you observe the state dereferencing the <code>state-view</code> atom, you will see
+it transformed:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -377,12 +373,11 @@ you will see it transformed:</p>
 <div class="sect2">
 <h3 id="error-handling"><a class="link" href="#error-handling">Error Handling</a></h3>
 <div class="paragraph">
-<p>In many circumstaces we found that exceptions are raised inside the
-event. For this cases <strong>potok</strong> comes with builtin mechanism for
-handlign errors.</p>
+<p>In many circumstances we found, that exception is raised inside the event. For
+this case <strong>potok</strong> comes with the built-in mechanism for handling errors.</p>
 </div>
 <div class="paragraph">
-<p>Let see some code:</p>
+<p>Let&#8217;s see some code:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -394,8 +389,8 @@ handlign errors.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Now, if an exception is raised inside an event it will report it to
-this function. The return value of on-error callback is ignored.</p>
+<p>Now, if an exception is raised inside an event it will report it to this
+function. The return value of on-error callback is ignored.</p>
 </div>
 </div>
 </div>
@@ -435,7 +430,7 @@ this function. The return value of on-error callback is ignored.</p>
 <h3 id="contributing"><a class="link" href="#contributing">Contributing</a></h3>
 <div class="paragraph">
 <p>Unlike Clojure and other Clojure contributed libraries <em>potok</em> does not have many
-restrictions for contributions. Just open an issue or pull request.</p>
+restrictions on contributions. Just open an issue or pull request.</p>
 </div>
 </div>
 <div class="sect2">
@@ -461,50 +456,69 @@ restrictions for contributions. Just open an issue or pull request.</p>
 <div class="sect2">
 <h3 id="what-is-the-motivation-behind-strong-potok-strong"><a class="link" href="#what-is-the-motivation-behind-strong-potok-strong">What is the motivation behind <strong>potok</strong>?</a></h3>
 <div class="paragraph">
-<p>My main motivarion is just simplify the amount of concepts that user
-needs to learn in order to use one-way-flow state management. Reactive
-streams fits very well for handle it, so I decide not reinvent the
-wheel, and just use them (in contrast to re-frame or redux as
-example).</p>
+<p>My main motivation is just to simplify a number of concepts that user needs to
+learn in order to use one-way-flow state management. Reactive streams fit very
+well this purpose, so I decided not to reinvent the wheel and just use them (in
+contrast to re-frame or redux as an example).</p>
 </div>
 <div class="paragraph">
-<p><strong>Potok</strong> is has very very small amount of code that can be understand
-and maintained by almost anyone that makes the decision of include it
-in the production without the fear of this library becomes
-unmaintained.</p>
+<p><strong>Potok</strong> has very small amount of the code and can be understood and maintained
+by almost anyone which makes the decision to include it in the production,
+without the fear of this library becomes unmaintained, easier.</p>
 </div>
 <div class="paragraph">
-<p>It is just 100 lines of pretty well commented code.</p>
+<p>It is just 100 lines of the pretty well-commented code.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="can-i-implement-more-than-one-event-protocol-at-same-time"><a class="link" href="#can-i-implement-more-than-one-event-protocol-at-same-time">Can I implement more than one event protocol at same time?</a></h3>
+<h3 id="can-i-implement-more-than-one-event-protocol-at-the-same-time"><a class="link" href="#can-i-implement-more-than-one-event-protocol-at-the-same-time">Can I implement more than one event protocol at the same time?</a></h3>
 <div class="paragraph">
-<p>Yes, in fact is a very useful approach for perform optimistic
-updates. Because the <strong>update</strong> event is always the first processed and
+<p>Yes, in fact, it is a very useful approach to performing optimistic
+updates, because the <strong>update</strong> event is always the first processed and
 the <strong>watch</strong> and <strong>effect</strong> events will receive the state already
 transformed by the <code>update</code> function.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="how-i-can-use-strong-potok-strong-with-react-based-web-applications"><a class="link" href="#how-i-can-use-strong-potok-strong-with-react-based-web-applications">How I can use <strong>potok</strong> with react based web applications?</a></h3>
+<h3 id="how-can-i-use-strong-potok-strong-with-react-js-based-web-applications"><a class="link" href="#how-can-i-use-strong-potok-strong-with-react-js-based-web-applications">How can I use <strong>potok</strong> with React.js based web applications?</a></h3>
 <div class="paragraph">
-<p>Very easy, once you have materialized the state into an atom, you can
-consume this atom from any react based toolkit (<strong>rum</strong>, <strong>reagent</strong>, etc)
-in the same way as you will consume a plain atom with the state.</p>
+<p>Very easy, once you have materialized the state into an atom, you can consume
+this atom from any react based toolkit (<strong>rum</strong>, <strong>reagent</strong>, etc) in the same way,
+as you will consume a plain atom with the state.</p>
 </div>
 <div class="paragraph">
-<p>The unique difference is that if you want to perform a state
-transformation, you need to define and emit an event for it instead of
-direct state atom transformation.</p>
+<p>The unique difference is that if you want to perform a state transformation, you
+need to define and emit an event for it instead of direct state atom&#8217;s
+transformation.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="there-are-some-real-applications-using-this-pattern"><a class="link" href="#there-are-some-real-applications-using-this-pattern">There are some real applications using this pattern?</a></h3>
+<h3 id="are-there-some-real-applications-using-this-pattern"><a class="link" href="#are-there-some-real-applications-using-this-pattern">Are there some real applications using this pattern?</a></h3>
 <div class="paragraph">
-<p>Yes, many of them are private, but there are one public:
-<a href="https://github.com/uxbox/uxbox">uxbox</a>. It is pretty big project
-and it demostrates that this approach scales very well.</p>
+<p>Yes, many of them are private, but there is one public:
+<a href="https://github.com/uxbox/uxbox">uxbox</a>. It is the pretty big project and it
+demonstrates that this approach scales very well.</p>
+</div>
+<div class="paragraph">
+<p>Also, there are some open source projects not connected to the Funcool
+organization:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://github.com/pepe/potok-rumu">potok-rumu</a> - just example project
+with the simple structure, for showing the potok capabilities. It also uses rum
+for rendering.</p>
+</li>
+<li>
+<p><a href="https://github.com/pepe/showrum">showrum</a> - presentation software, which
+uses potok for state management</p>
+</li>
+<li>
+<p><a href="https://github.com/LastStar/proud">proud</a> - highly opinionated boot
+template for generating new projects with potok and rum setup</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -517,7 +531,7 @@ and it demostrates that this approach scales very well.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Copyright (c) 2015-2016 Andrey Antukh &lt;niwi@niwi.nz&gt;
+<pre>Copyright (c) 2015-2017 Andrey Antukh &lt;niwi@niwi.nz&gt;
 
 All rights reserved.
 
@@ -548,7 +562,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-03-14 21:09:54 CET
+Last updated 2017-04-26 20:31:21 CEST
 </div>
 </div>
 </body>
