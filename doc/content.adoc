@@ -18,7 +18,7 @@ Just add this to your dependencies:
 
 [source, clojure]
 ----
-[funcool/potok "2.1.0"]
+[funcool/potok "2.2.0"]
 ----
 
 

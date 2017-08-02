@@ -1,4 +1,4 @@
-(defproject funcool/potok "2.1.0"
+(defproject funcool/potok "2.2.0"
   :description "Reactive streams based state management toolkit for ClojureScript"
   :url "https://github.com/funcool/potok"
   :license {:name "BSD (2-Clause)"
