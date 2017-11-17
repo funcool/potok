@@ -12,13 +12,14 @@
 Potok is a tiny (100LOC) reactive streams based state management toolkit for
 ClojureScript.
 
+
 === Install
 
 Just add this to your dependencies:
 
 [source, clojure]
 ----
-[funcool/potok "2.2.0"]
+[funcool/potok "2.3.0"]
 ----
 
 
