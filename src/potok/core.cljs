@@ -89,11 +89,9 @@
 (defn- default-error-handler
   [error]
   (js/console.warn "Using default error handler, consider using your own!")
-  (js/console.error error)
-  (rx/throw error))
+  (js/console.error error))
 
 (def ^:private noop (constantly nil))
-(def ^:private max-safe-integer js/Number.MAX_SAFE_INTEGER)
 
 ;; --- Public API
 
@@ -102,59 +100,55 @@
 
   This function initializes a new event processing stream
   loop and returns a bi-directional rx stream that should
-  be used to push new events and subscribe to state changes.
-
-  You probably should not be using this function directly,
-  because a default store is already instanciated
-  under the `stream` var. This function is indented to be
-  used for advanced use cases, where one store is not
-  enough."
+  be used to push new events and subscribe to state changes."
   ([] (store nil))
   ([{:keys [on-error state] :or {on-error default-error-handler}}]
    {:pre [(fn? on-error)]}
-   (letfn [(process-watch [input-sub [event state]]
-             (watch event state input-sub))
-           (process-update [input-sub state event]
+   (letfn [(process-update [input-sub state event]
              (update event state))
+           (process-watch [input-sub [event state]]
+             (let [result (watch event state input-sub)]
+               (if (nil? result)
+                 (rx/empty)
+                 result)))
            (handle-effect [input-sub [event state]]
              (effect event state input-sub))
-           (handle-error [error]
-             (on-error error)
-             (rx/throw error))]
+           (handle-error [error source]
+             (try
+               (on-error error)
+               (catch :default e))
+             source)]
+
      (let [input-sb (rx/subject)
+           input-sm (rx/as-observable input-sb)
            state-sb (rx/behavior-subject state)
-           state-sm (->> (rx/filter update? input-sb)
-                         (rx/scan (partial process-update input-sb) state)
-                         (rx/catch handle-error)
-                         (rx/retry max-safe-integer))
-           watch-sm (->> (rx/filter watch? input-sb)
-                         (rx/with-latest vector state-sb)
-                         (rx/flat-map (partial process-watch input-sb))
-                         (rx/catch handle-error)
-                         (rx/retry max-safe-integer))
-           effct-sm (->> (rx/filter effect? input-sb)
-                         (rx/with-latest vector state-sb)
-                         (rx/do (partial handle-effect input-sb))
-                         (rx/catch handle-error)
-                         (rx/retry max-safe-integer))
-           subs     (rx/subscribe-with state-sm state-sb)
-           subw     (rx/subscribe-with watch-sm input-sb)
-           sube     (rx/subscribe effct-sm noop)
-           stoped?  (volatile! false)]
+
+           update-sm (->> (rx/filter update? input-sm)
+                          (rx/scan #(process-update input-sm %1 %2) state)
+                          (rx/catch handle-error))
+           watch-sm  (->> (rx/filter watch? input-sm)
+                          (rx/with-latest vector state-sb)
+                          (rx/flat-map #(process-watch input-sm %))
+                          (rx/catch handle-error))
+           effect-sm (->> (rx/filter effect? input-sm)
+                          (rx/with-latest vector state-sb)
+                          (rx/do #(handle-effect input-sm %))
+                          (rx/catch handle-error))
+
+           subs (rx/subscribe-with update-sm state-sb)
+           subw (rx/subscribe-with watch-sm input-sb)
+           sube (rx/subscribe effect-sm noop)]
+
        (specify! state-sb
          Store
          (-push [_ event]
-           (when @stoped? (throw (ex-info "store already terminated" {})))
            (rx/push! input-sb event))
 
          (-input-stream [_]
-           (->> input-sb
-                (rx/map identity)
-                (rx/share)))
+           (rx/as-observable input-sb))
 
          rx/ICancellable
          (-cancel [_]
-           (vreset! stoped? true)
            (rx/cancel! subs)
            (rx/cancel! subw)
            (rx/cancel! sube)
