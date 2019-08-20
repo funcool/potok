@@ -19,7 +19,7 @@ Just add this to your dependencies:
 
 [source, clojure]
 ----
-[funcool/potok "2.3.0"]
+[funcool/potok "2.4.0"]
 ----
 
 
@@ -291,12 +291,12 @@ transformed by the `update` function.
 
 === How can I use *potok* with React.js based web applications?
 
-Very easy, once you have materialized the state into an atom, you can consume
-this atom from any react based toolkit (*rum*, *reagent*, etc) in the same way,
-as you will consume a plain atom with the state.
+Very easy, once you have materialized the state into an atom, you can
+consume this atom from any react based toolkit (*rumext*, *reagent*,
+etc) in the same way, as you will consume a plain atom with the state.
 
 The unique difference is that if you want to perform a state transformation, you
-need to define and emit an event for it instead of direct state atom's
+need to define and emit an event for it, instead of direct state atom's
 transformation.
 
 
@@ -324,7 +324,7 @@ organization:
 _potok_ is licensed under BSD (2-Clause) license:
 
 ----
-Copyright (c) 2015-2017 Andrey Antukh <niwi@niwi.nz>
+Copyright (c) 2015-2019 Andrey Antukh <niwi@niwi.nz>
 
 All rights reserved.
 

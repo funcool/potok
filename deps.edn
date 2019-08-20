@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {funcool/beicon {:mvn/version "5.1.0-SNAPSHOT"}}
+ :deps {funcool/beicon {:mvn/version "5.1.0"}}
  :aliases
  {:dev {:extra-deps {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
                      com.bhauman/rebel-readline {:mvn/version "0.1.4"}
