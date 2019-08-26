@@ -4,7 +4,7 @@
   <groupId>funcool</groupId>
   <artifactId>potok</artifactId>
   <packaging>jar</packaging>
-  <version>2.4.0</version>
+  <version>2.5.0</version>
   <name>potok</name>
   <description>Reactive streams based state management toolkit for ClojureScript</description>
   <url>https://github.com/funcool/potok</url>
