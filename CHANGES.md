@@ -1,5 +1,21 @@
 # Changelog #
 
+## Version 2.5.0 ##
+
+Date: 2019-08-26
+
+- Add facilities for attach type to events defined with `reify`.
+
+
+## Version 2.4.0 ##
+
+Date: 2019-08-20
+
+- Update beicon to 5.1.0
+- Convert project to cli tools.
+- Improve error handling.
+- Minor performance improvements.
+
 ## Version 2.3.0 ##
 
 Date: 2017-11-17
