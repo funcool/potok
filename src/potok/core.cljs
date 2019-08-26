@@ -53,6 +53,21 @@
 (defprotocol EffectEvent
   (effect [event state stream]))
 
+;; An abstraction for define the Event type and facilitate filtering
+;; of events by type (only useful when type is defined using reify).
+
+(defprotocol EventType
+  (type [_] "Returns the type of the event."))
+
+(extend-protocol EventType
+  default
+  (type [_] nil))
+
+(defn event-of?
+  "Return true if event `o` has type of `t`."
+  [t o]
+  (= (type o) t))
+
 ;; An abstraction used for send data to the store.
 
 (defprotocol Store
