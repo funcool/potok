@@ -19,7 +19,7 @@ Just add this to your dependencies:
 
 [source, clojure]
 ----
-[funcool/potok "2.5.0"]
+[funcool/potok "2.6.0"]
 ----
 
 
@@ -59,9 +59,9 @@ should return the transformed state. Let's see an example:
     (update state :counter (fnil inc 0))))
 ----
 
-You may be thinking, the signature of the `update` function is very similar to a
-reduce function. And in fact, it does just that the state reduction, and it can
-be defined using a plain ClojureScript function:
+You may be thinking, the signature of the `update` function is very
+similar to a reduce function. And in fact, it does just that the state
+reduction, and it can be defined using a plain ClojureScript function:
 
 [source, clojure]
 ----
@@ -70,9 +70,9 @@ be defined using a plain ClojureScript function:
   (update state :counter (fnil inc 0))
 ----
 
-Although it is very simple to define this kind of events as functions, the type
-based events are more recommended, especially when you want to pass arguments to
-the event. Let's see an example:
+Although it is very simple to define this kind of events as functions,
+the type based events are more recommended, especially when you want
+to pass arguments to the event. Let's see an example:
 
 [source, clojure]
 ----
@@ -82,7 +82,8 @@ the event. Let's see an example:
     (update state :counter + n)))
 ----
 
-The same event would look much uglier if defined using function syntax:
+The same event would look much uglier if defined using function
+syntax:
 
 [source, clojure]
 ----
@@ -95,8 +96,8 @@ The same event would look much uglier if defined using function syntax:
 
 ==== Watch Event
 
-Apart from the simple state transformations, applications usually
-need to perform asynchronous operations such as call remote API, access
+Apart from the simple state transformations, applications usually need
+to perform asynchronous operations such as call remote API, access
 local database, etc. This is where the *watch* events play their
 role. They are designed to handle asynchronous operations.
 
@@ -114,25 +115,27 @@ Let's see how it looks:
 ----
 
 
-The responsibility of the `watch` function is to perform an asynchronous
-operation and return a stream of one or more events. In the example, you can
-observe, that it just returns a stream of one `Increment` event instance delayed
-100 milliseconds (thus emulating some latency).
+The responsibility of the `watch` function is to perform an
+asynchronous operation and return a stream of one or more events. In
+the example, you can observe, that it just returns a stream of one
+`Increment` event instance delayed 100 milliseconds (thus emulating
+some latency).
 
-That stream will be re-injected into the main stream and those events will be
-processed in the same way as if you emitted them with `potok.core/emit!`
-function.
+That stream will be re-injected into the main stream and those events
+will be processed in the same way as if you emitted them with
+`potok.core/emit!` function.
 
-The additional `stream` parameter to the `watch` function represents the main
-stream where all events will arrive, so you can build logic needed for a
-synchronization with other events or just a handling of some kind of a
-cancellation.
+The additional `stream` parameter to the `watch` function represents
+the main stream where all events will arrive, so you can build logic
+needed for a synchronization with other events or just a handling of
+some kind of a cancellation.
 
 
 ==== Effect Event
 
-The *effect* event represents a side effectfull action. In the same way as the
-*watch* event, it receives the current state and the main stream as arguments.
+The *effect* event represents a side effectfull action. In the same
+way as the *watch* event, it receives the current state and the main
+stream as arguments.
 
 Let's see how it look:
 
@@ -150,43 +153,44 @@ The return value of the `effect` function is completely ignored.
 
 === Store
 
-In the previous section we have seen events, the *store* is the object that
-processes them. It has the following responsibilities:
+In the previous section we have seen events, the *store* is the object
+that processes them. It has the following responsibilities:
 
 - Hold the application state.
 - Process incoming events.
 - Emit the changes using reactive streams.
 
-In the contrast to other similar approaches to implementing store (such that
-re-frame or redux), this approach does not allow to access the state directly,
-you only can watch it and materialize it to some reference type like
-ClojureScript *atom*. This ensures that the state can only be transformed using
-events.
+In the contrast to other similar approaches to implementing store
+(such that re-frame or redux), this approach does not allow to access
+the state directly, you only can watch it and materialize it to some
+reference type like ClojureScript *atom*. This ensures that the state
+can only be transformed using events.
 
-To create store you just need to execute the `potok.core/store` function:
+To create store you just need to execute the `potok.core/store`
+function:
 
 [source, clojure]
 ----
 (def store (ptk/store))
 ----
 
-If no arguments is passed to `store` function, the initial state is initialized
-as `nil`. This is how you can provide an initial state:
+If no arguments is passed to `store` function, the initial state is
+initialized as `nil`. This is how you can provide an initial state:
 
 [source, clojure]
 ----
 (def store (ptk/store {:state {:counter 0}}))
 ----
 
-The `store` object from the user perspective is a reactive stream that emits the
-state each time it is transformed.
+The `store` object from the user perspective is a reactive stream that
+emits the state each time it is transformed.
 
-Internally it is implemented using *BehaviorSubject* and each new subscription
-always receives the latest state object followed by state objects transformed by
-events.
+Internally it is implemented using *BehaviorSubject* and each new
+subscription always receives the latest state object followed by state
+objects transformed by events.
 
-In order to be able to access the state, we need to materialize
-it. A good approach is using just an atom to hold the materialized state:
+In order to be able to access the state, we need to materialize it. A
+good approach is using just an atom to hold the materialized state:
 
 [source, clojure]
 ----
@@ -194,16 +198,16 @@ it. A good approach is using just an atom to hold the materialized state:
   (rx/to-atom store))
 ----
 
-Now that we have created a store, and a materialized view of the state. Let's
-start to emit events:
+Now that we have created a store, and a materialized view of the
+state. Let's start to emit events:
 
 [source, clojure]
 ----
 (ptk/emit! store (->Increment))
 ----
 
-Now if you observe the state dereferencing the `state-view` atom, you will see
-it transformed:
+Now if you observe the state dereferencing the `state-view` atom, you
+will see it transformed:
 
 [source, clojure]
 ----
@@ -213,8 +217,9 @@ it transformed:
 
 === Error Handling
 
-In many circumstances we found, that exception is raised inside the event. For
-this case *potok* comes with the built-in mechanism for handling errors.
+In many circumstances we found, that exception is raised inside the
+event. For this case *potok* comes with the built-in mechanism for
+handling errors.
 
 Let's see some code:
 
@@ -227,8 +232,8 @@ Let's see some code:
 (def store (ptk/store {:on-error on-error}))
 ----
 
-Now, if an exception is raised inside an event it will report it to this
-function. The return value of on-error callback is ignored.
+Now, if an exception is raised inside an event it will report it to
+this function. The return value of on-error callback is ignored.
 
 
 == Developers Guide
