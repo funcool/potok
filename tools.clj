@@ -9,8 +9,6 @@
 (require '[cljs.build.api :as api]
          '[cljs.repl :as repl]
          '[cljs.repl.node :as node])
-(require '[badigeon.jar]
-         '[badigeon.deploy])
 
 (defmulti task first)
 
@@ -33,6 +31,15 @@
      :output-dir "out"
      :cache-analysis false)))
 
+(defmethod task "repl:jvm"
+  [args]
+  (rebel-readline.core/with-line-reader
+    (rebel-readline.clojure.line-reader/create
+     (rebel-readline.clojure.service.local/create))
+    (clojure.main/repl
+     :prompt (fn []) ;; prompt is handled by line-reader
+     :read (rebel-readline.clojure.main/create-repl-read))))
+
 (def build-options
   {:main 'potok.tests
    :output-to "out/tests.js"
@@ -49,29 +56,6 @@
 (defmethod task "build:tests"
   [args]
   (api/build (api/inputs "src" "test") build-options))
-
-(defmethod task "jar"
-  [args]
-  (badigeon.jar/jar 'funcool/potok
-                    {:mvn/version "2.5.0"}
-                    {:out-path "target/potok.jar"
-                     :mvn/repos '{"clojars" {:url "https://repo.clojars.org/"}}
-                     :allow-all-dependencies? false}))
-
-(defmethod task "deploy"
-  [args]
-  (let [artifacts [{:file-path "target/potok.jar" :extension "jar"}
-                   {:file-path "pom.xml" :extension "pom"}]]
-    (badigeon.deploy/deploy
-     'funcool/potok "2.5.0"
-     artifacts
-     {:id "clojars" :url "https://repo.clojars.org/"}
-     {:allow-unsigned? true})))
-
-(defmethod task "build-and-deploy"
-  [args]
-  (task ["jar"])
-  (task ["deploy"]))
 
 ;;; Build script entrypoint. This should be the last expression.
 

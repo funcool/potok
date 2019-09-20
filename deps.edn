@@ -1,14 +1,17 @@
 {:paths ["src"]
  :deps {funcool/beicon {:mvn/version "5.1.0"}}
  :aliases
- {:dev {:extra-deps {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
-                     com.bhauman/rebel-readline {:mvn/version "0.1.4"}
-                     org.clojure/clojurescript {:mvn/version "1.10.520"}
-                     org.clojure/clojure {:mvn/version "1.10.1"}
-                     badigeon/badigeon {:git/url "https://github.com/EwenG/badigeon.git"
-                                        :sha "db25a8f7053dec65afeb7fb0d1a5351dcdbe78bd"
-                                        :tag "0.0.8"}}
-        :extra-paths ["test"]}
+ {:dev
+  {:extra-deps {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
+                com.bhauman/rebel-readline {:mvn/version "0.1.4"}
+                org.clojure/clojurescript {:mvn/version "1.10.520"}
+                org.clojure/clojure {:mvn/version "1.10.1"}}
+   :extra-paths ["test"]}
+  :deploy
+  {:extra-deps {badigeon/badigeon {:git/url "https://github.com/EwenG/badigeon.git"
+                                   :sha "db25a8f7053dec65afeb7fb0d1a5351dcdbe78bd"
+                                   :tag "0.0.8"}}
+   :main-opts ["deploy.clj"]}
 
   :ancient {:main-opts ["-m" "deps-ancient.deps-ancient"]
             :extra-deps {deps-ancient {:mvn/version "RELEASE"}}}}}
