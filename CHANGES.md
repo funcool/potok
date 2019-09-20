@@ -4,8 +4,11 @@
 
 Date: 2019-09-20
 
-- Add `potoc.core/reify` macro for define events with associated type.
 - Dispatch `watch` and `effect` observation on a microtask.
+- Add `event?` predicate.
+- Rename `EventType` protocol to `Event` (breaking change).
+- Add `potoc.core/reify` macro for define events with associated type;
+  using the `Event` protocol.
 
 
 ## Version 2.5.0 ##
