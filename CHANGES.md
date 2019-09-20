@@ -1,5 +1,13 @@
 # Changelog #
 
+## Version 2.6.0 ##
+
+Date: 2019-09-20
+
+- Add `potoc.core/reify` macro for define events with associated type.
+- Dispatch `watch` and `effect` observation on a microtask.
+
+
 ## Version 2.5.0 ##
 
 Date: 2019-08-26

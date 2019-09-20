@@ -1,4 +1,4 @@
-;; Copyright (c) 2015-2017 Andrey Antukh <niwi@niwi.nz>
+;; Copyright (c) 2015-2019 Andrey Antukh <niwi@niwi.nz>
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,9 @@
 
 (ns potok.core
   "Stream & Events based state management toolkit for ClojureScript."
-  (:refer-clojure :exclude [update])
-  (:require [beicon.core :as rx]))
+  (:refer-clojure :exclude [update reify type])
+  (:require [beicon.core :as rx])
+  (:require-macros [potok.core :refer [reify]]))
 
 ;; --- Protocols
 
@@ -56,17 +57,8 @@
 ;; An abstraction for define the Event type and facilitate filtering
 ;; of events by type (only useful when type is defined using reify).
 
-(defprotocol EventType
-  (type [_] "Returns the type of the event."))
-
-(extend-protocol EventType
-  default
-  (type [_] nil))
-
-(defn event-of?
-  "Return true if event `o` has type of `t`."
-  [t o]
-  (= (type o) t))
+(defprotocol Event
+  (-type [_] "Returns the type of the event."))
 
 ;; An abstraction used for send data to the store.
 
@@ -74,7 +66,7 @@
   (^:private -push [_ event] "Push event into the stream.")
   (^:private -input-stream [_] "Returns the internal input stream/subject."))
 
-;; --- Predicates
+;; --- Predicates & Helpers
 
 (defn update?
   "Return `true` when `e` satisfies
@@ -93,6 +85,28 @@
   the EffectEvent protocol."
   [e]
   (satisfies? EffectEvent e))
+
+(defn event?
+  "Return `true` if `v` is an event."
+  [v]
+  (or (satisfies? Event v)
+      (update? v)
+      (watch? v)
+      (effect? v)))
+
+(defn promise?
+  "Return `true` if `v` is a promise instance or is a thenable
+  object."
+  [v]
+  (or (instance? js/Promise v)
+      (and (goog.isObject v)
+           (fn? (unchecked-get v "then")))))
+
+(defn type
+  [o]
+  (if (implements? Event o)
+    (-type o)
+    ::undefined))
 
 ;; --- Implementation Details
 
@@ -123,16 +137,24 @@
              (update event state))
            (process-watch [input-sub [event state]]
              (let [result (watch event state input-sub)]
-               (if (nil? result)
-                 (rx/empty)
-                 result)))
+               (cond
+                 (rx/observable? result) result
+                 (nil? result) (rx/empty)
+                 (promise? result) (rx/from-promise result)
+                 :else
+                 (do
+                   (js/console.warn "Event returned unexpected object from `watch` method (ignoring)."
+                                    (pr-str {:event event :event-type (type event)}))
+                   (rx/empty)))))
            (handle-effect [input-sub [event state]]
              (effect event state input-sub))
            (handle-error [error source]
-             (try
-               (on-error error)
-               (catch :default e))
-             source)]
+             (let [res (try
+                         (on-error error)
+                         (catch :default e))]
+               (if (rx/observable? res)
+                 res
+                 source)))]
 
      (let [input-sb (rx/subject)
            input-sm (rx/as-observable input-sb)
@@ -144,11 +166,13 @@
            watch-sm  (->> (rx/filter watch? input-sm)
                           (rx/with-latest vector state-sb)
                           (rx/flat-map #(process-watch input-sm %))
-                          (rx/catch handle-error))
+                          (rx/catch handle-error)
+                          (rx/observe-on :asap))
            effect-sm (->> (rx/filter effect? input-sm)
                           (rx/with-latest vector state-sb)
                           (rx/do #(handle-effect input-sm %))
-                          (rx/catch handle-error))
+                          (rx/catch handle-error)
+                          (rx/observe-on :asap))
 
            subs (rx/subscribe-with update-sm state-sb)
            subw (rx/subscribe-with watch-sm input-sb)
@@ -160,7 +184,7 @@
            (rx/push! input-sb event))
 
          (-input-stream [_]
-           (rx/as-observable input-sb))
+           input-sm)
 
          rx/ICancellable
          (-cancel [_]
