@@ -40,6 +40,11 @@
                       done))
       (ptk/emit! store (->AsyncIncrementBy 2)))))
 
+(t/deftest data-only-events
+  (let [event (ptk/data-event ::foobar {:some "data"})]
+    (t/is (ptk/type? ::foobar event))
+    (t/is (= {:some "data"} @event))))
+
 (set! *main-cli-fn* #(t/run-tests))
 
 (defmethod t/report [:cljs.test/default :end-run-tests]

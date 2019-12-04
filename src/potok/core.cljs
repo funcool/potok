@@ -108,6 +108,12 @@
     (-type o)
     ::undefined))
 
+(defn type?
+  ([t]
+   (fn [v] (= (type v) t)))
+  ([t v]
+   (= (type v) t)))
+
 ;; --- Implementation Details
 
 (extend-protocol UpdateEvent
@@ -212,3 +218,11 @@
   [store]
   {:pre [(satisfies? Store store)]}
   (-input-stream store))
+
+(defn data-event
+  "Creates an event instance that only contains data."
+  ([t] (data-event t nil))
+  ([t d]
+   (reify t
+     IDeref
+     (-deref [_] d))))

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>funcool</groupId>
+  <artifactId>potok</artifactId>
+  <version>2.7.0</version>
+  <name>potok</name>
+  <description>Reactive Streams based state management toolkit.</description>
+  <url>https://github.com/funcool/potok</url>
+  <scm>
+    <connection>scm:git:git://github.com/funcool/potok.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/funcool/potok.git</developerConnection>
+    <tag>master</tag>
+    <url>https://github.com/funcool/potok</url>
+  </scm>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+  </build>
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>1.10.1</version>
+    </dependency>
+    <dependency>
+      <groupId>funcool</groupId>
+      <artifactId>beicon</artifactId>
+      <version>5.1.0</version>
+    </dependency>
+  </dependencies>
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org/</url>
+    </repository>
+  </repositories>
+</project>

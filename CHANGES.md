@@ -1,5 +1,14 @@
 # Changelog #
 
+## Version 2.7.0 ##
+
+Date: 2019-12-04
+
+- Add `data-event` constructor (useful for creating add-hoc data-only
+  events).
+- Add `type?` predicate.
+
+
 ## Version 2.6.0 ##
 
 Date: 2019-09-20
