@@ -1,5 +1,11 @@
 # Changelog #
 
+## Version 2.8.0-SNAPSHOT ##
+
+- Revert dispatching in microtask the `watch` and `effect` because it breaks
+  the contract that watch is executed just after update.
+  
+
 ## Version 2.7.0 ##
 
 Date: 2019-12-04
