@@ -34,5 +34,3 @@
      ~'potok.core/Event
      (~'-type [_#] ~type)
      ~@impls))
-
-

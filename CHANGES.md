@@ -1,10 +1,15 @@
 # Changelog #
 
-## Version 2.8.0-SNAPSHOT ##
+## Version 2020.08.10-1 ##
 
 - Revert dispatching in microtask the `watch` and `effect` because it breaks
   the contract that watch is executed just after update.
-  
+- Update to beicon 2020.05.08-2
+- Change version numering.
+- Add `event-ref?` predicate.
+- Add `resolve` mechanism (indirection for reference events by keywords and resolve
+  they using a multimethod or any other mechanism).
+
 
 ## Version 2.7.0 ##
 

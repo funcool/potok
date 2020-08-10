@@ -1,19 +1,23 @@
 {:paths ["src"]
- :deps {funcool/beicon {:mvn/version "5.1.0"}}
+ :deps {funcool/beicon {:mvn/version "2020.05.08-2"}}
  :aliases
  {:dev
   {:extra-deps
    {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
     com.bhauman/rebel-readline {:mvn/version "0.1.4"}
     org.clojure/clojurescript {:mvn/version "1.10.520"}
-    org.clojure/clojure {:mvn/version "1.10.1"}}
+    org.clojure/clojure {:mvn/version "1.10.1"}
+    org.clojure/tools.deps.alpha {:mvn/version "0.9.763"}}
    :extra-paths ["test"]}
 
+  :install
+  {:fn clojure.tools.deps.alpha.tools.install/install
+   :args {:jar "target/potok.jar"}}
 
-  :ancient
-  {:main-opts ["-m" "deps-ancient.deps-ancient"],
-   :extra-deps {deps-ancient/deps-ancient {:mvn/version "RELEASE"}}}
+  :outdated
+  {:extra-deps {olical/depot {:mvn/version "RELEASE"}}
+   :main-opts ["-m" "depot.outdated.main"]}
 
   :jar
-  {:extra-deps {seancorfield/depstar {:mvn/version "0.3.3"}}
+  {:extra-deps {seancorfield/depstar {:mvn/version "RELEASE"}}
    :main-opts ["-m" "hf.depstar.jar", "target/potok.jar"]}}}

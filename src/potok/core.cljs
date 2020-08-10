@@ -24,7 +24,7 @@
 
 (ns potok.core
   "Stream & Events based state management toolkit for ClojureScript."
-  (:refer-clojure :exclude [update reify type])
+  (:refer-clojure :exclude [update reify type resolve])
   (:require [beicon.core :as rx])
   (:require-macros [potok.core :refer [reify]]))
 
@@ -66,6 +66,10 @@
   (^:private -push [_ event] "Push event into the stream.")
   (^:private -input-stream [_] "Returns the internal input stream/subject."))
 
+;; --- Types
+
+(defrecord EventRef [type params])
+
 ;; --- Predicates & Helpers
 
 (defn update?
@@ -94,6 +98,10 @@
       (watch? v)
       (effect? v)))
 
+(defn event-ref?
+  [v]
+  (instance? EventRef v))
+
 (defn promise?
   "Return `true` if `v` is a promise instance or is a thenable
   object."
@@ -121,10 +129,20 @@
   (update [func state]
     (func state)))
 
-(defn- default-error-handler
+(defmulti handle-error :type)
+(defmethod handle-error :default
   [error]
   (js/console.warn "Using default error handler, consider using your own!")
   (js/console.error error))
+
+(defmulti resolve (fn [type params] type))
+(defmethod resolve :default
+  [type params]
+  (throw (ex-info "No implementation found"
+                  {:type :not-implemented
+                   :code :resolve-not-implemented
+                   :context {:type type
+                             :params params}})))
 
 (def ^:private noop (constantly nil))
 
@@ -137,34 +155,45 @@
   loop and returns a bi-directional rx stream that should
   be used to push new events and subscribe to state changes."
   ([] (store nil))
-  ([{:keys [on-error state] :or {on-error default-error-handler}}]
-   {:pre [(fn? on-error)]}
+  ([{:keys [on-error state resolve]
+     :or {on-error handle-error}
+     :as params}]
    (letfn [(process-update [input-sub state event]
              (update event state))
+
            (process-watch [input-sub [event state]]
              (let [result (watch event state input-sub)]
                (cond
                  (rx/observable? result) result
                  (nil? result) (rx/empty)
-                 (promise? result) (rx/from-promise result)
+                 (promise? result) (rx/from result)
                  :else
                  (do
                    (js/console.warn "Event returned unexpected object from `watch` method (ignoring)."
                                     (pr-str {:event event :event-type (type event)}))
                    (rx/empty)))))
+
            (handle-effect [input-sub [event state]]
              (effect event state input-sub))
+
            (handle-error [error source]
              (let [res (try
                          (on-error error)
                          (catch :default e))]
                (if (rx/observable? res)
                  res
-                 source)))]
+                 source)))
+           ]
 
-     (let [input-sb (rx/subject)
-           input-sm (rx/as-observable input-sb)
-           state-sb (rx/behavior-subject state)
+     (let [input-sb  (rx/subject)
+           input-sm  (cond->> (rx/to-observable input-sb)
+                       (or (fn? resolve) (ifn? resolve))
+                       (rx/map #(if (event-ref? %)
+                                  (resolve (:type %) (:params %))
+                                  %)))
+
+           input-sm  (rx/share input-sm)
+           state-sb  (rx/behavior-subject state)
 
            update-sm (->> (rx/filter update? input-sm)
                           (rx/scan #(process-update input-sm %1 %2) state)
@@ -190,12 +219,18 @@
          (-input-stream [_]
            input-sm)
 
-         rx/ICancellable
-         (-cancel [_]
-           (rx/cancel! subs)
-           (rx/cancel! subw)
-           (rx/cancel! sube)
+         rx/IDisposable
+         (-dispose [_]
+           (rx/dispose! subs)
+           (rx/dispose! subw)
+           (rx/dispose! sube)
            (rx/end! input-sb)))))))
+
+(defn event
+  ([type]
+   (EventRef. type {}))
+  ([type params]
+   (EventRef. type params)))
 
 (defn emit!
   "Emits an event or a collection of them into the default store.
@@ -203,10 +238,8 @@
   If you have instanciated your own store, this function provides
   2-arity that allows specify a user defined store."
   ([store event]
-   {:pre [(satisfies? Store store)]}
    (-push store event))
   ([store event & more]
-   {:pre [(satisfies? Store store)]}
    (run! (partial -push store) (cons event more))))
 
 (defn input-stream
@@ -214,7 +247,6 @@
   be used by third party integration that want use store
   as event bus not only with defined events."
   [store]
-  {:pre [(satisfies? Store store)]}
   (-input-stream store))
 
 (defn data-event
