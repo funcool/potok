@@ -1,4 +1,4 @@
-;; Copyright (c) 2015-2019 Andrey Antukh <niwi@niwi.nz>
+;; Copyright (c) 2015-2021 Andrey Antukh <niwi@niwi.nz>
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -66,9 +66,11 @@
   (^:private -push [_ event] "Push event into the stream.")
   (^:private -input-stream [_] "Returns the internal input stream/subject."))
 
+
 ;; --- Types
 
 (defrecord EventRef [type params])
+
 
 ;; --- Predicates & Helpers
 
@@ -122,6 +124,25 @@
   ([t v]
    (= (type v) t)))
 
+
+;; --- Constructors
+
+(defn data-event
+  "Creates an event instance that only contains data."
+  ([t] (data-event t nil))
+  ([t d]
+   (reify t
+     IDeref
+     (-deref [_] d))))
+
+(defn event
+  "Create an event reference instance."
+  ([type]
+   (EventRef. type {}))
+  ([type params]
+   (EventRef. type params)))
+
+
 ;; --- Implementation Details
 
 (extend-protocol UpdateEvent
@@ -136,17 +157,26 @@
   (js/console.error error))
 
 (defmulti resolve (fn [type params] type))
-(defmethod resolve :default
-  [type params]
-  (throw (ex-info "No implementation found"
-                  {:type :not-implemented
-                   :code :resolve-not-implemented
-                   :context {:type type
-                             :params params}})))
+(defmethod resolve :default [type params] (data-event type params))
 
 (def ^:private noop (constantly nil))
 
 ;; --- Public API
+
+
+(defn repr-event
+  [event]
+  (cond
+    (satisfies? Event event)
+    (str "typ: " (pr-str (-type event)))
+
+    (and (fn? event)
+         (pos? (count (.-name event))))
+    (str "fn: " (demunge (.-name event)))
+
+    :else
+    (str "unk: " (pr-str event))))
+
 
 (defn store
   "Start a new store.
@@ -158,60 +188,73 @@
   ([{:keys [on-error state resolve]
      :or {on-error handle-error}
      :as params}]
-   (letfn [(process-update [input-sub state event]
-             (update event state))
+   (letfn [(process-error [error]
+             (let [res (on-error error)]
+               (if (rx/observable? res) res (rx/empty))))
 
-           (process-watch [input-sub [event state]]
-             (let [result (watch event state input-sub)]
+           (process-watch [input-sm output-sb state event]
+             (let [result (try
+                            (watch event state input-sm)
+                            (catch :default e
+                              (process-error e)))]
+
                (cond
-                 (rx/observable? result) result
-                 (nil? result) (rx/empty)
-                 (promise? result) (rx/from result)
+                 (rx/observable? result)
+                 (->> result
+                      (rx/catch process-error)
+                      (rx/subs #(rx/push! output-sb %)))
+
+                 (promise? result)
+                 (->> (rx/from result)
+                      (rx/catch process-error)
+                      (rx/subs #(rx/push! output-sb %)))
+
+                 (nil? result)
+                 nil
+
                  :else
-                 (do
-                   (js/console.warn "Event returned unexpected object from `watch` method (ignoring)."
-                                    (pr-str {:event event :event-type (type event)}))
-                   (rx/empty)))))
+                 (js/console.warn "Event returned unexpected object from `watch` method (ignoring)."
+                                  (pr-str {:event event :event-type (type event)})))))
 
-           (handle-effect [input-sub [event state]]
-             (effect event state input-sub))
-
-           (handle-error [error source]
-             (let [res (try
-                         (on-error error)
-                         (catch :default e))]
-               (if (rx/observable? res)
-                 res
-                 source)))
-           ]
+           (handle-effect [input-sm state event]
+             (try
+               (effect event state input-sm)
+               (catch :default e
+                 (process-error e))))]
 
      (let [input-sb  (rx/subject)
+
+           ;; This steps allow an optional layer of indirection:
+           ;; defining events in a multimethod style registry.
            input-sm  (cond->> (rx/to-observable input-sb)
                        (or (fn? resolve) (ifn? resolve))
                        (rx/map #(if (event-ref? %)
                                   (resolve (:type %) (:params %))
                                   %)))
-
+           ;; A shared observable is used here for avoid repeating
+           ;; resolution process for each subscription.
            input-sm  (rx/share input-sm)
-           state-sb  (rx/behavior-subject state)
 
-           update-sm (->> (rx/filter update? input-sm)
-                          (rx/scan #(process-update input-sm %1 %2) state)
-                          (rx/catch handle-error))
-           watch-sm  (->> (rx/filter watch? input-sm)
-                          (rx/with-latest vector state-sb)
-                          (rx/flat-map #(process-watch input-sm %))
-                          (rx/catch handle-error))
-           effect-sm (->> (rx/filter effect? input-sm)
-                          (rx/with-latest vector state-sb)
-                          (rx/do #(handle-effect input-sm %))
-                          (rx/catch handle-error))
+           state*    (atom state)]
 
-           subs (rx/subscribe-with update-sm state-sb)
-           subw (rx/subscribe-with watch-sm input-sb)
-           sube (rx/subscribe effect-sm noop)]
+       ;; a sync state transformation subscription loop
+       (->> (rx/filter update? input-sm)
+            (rx/subs (fn [event]
+                       (try
+                         (swap! state* #(update event %))
+                         (catch :default e
+                           (process-error e))))))
 
-       (specify! state-sb
+       ;; side effectful subscription for watch events
+       (->> (rx/filter watch? input-sm)
+            (rx/finalize #(prn "finalize watch?"))
+            (rx/subs #(process-watch input-sm input-sb @state* %)))
+
+       ;; side effectful subscription for effect events
+       (->> (rx/filter effect? input-sm)
+            (rx/subs #(handle-effect input-sm @state* %)))
+
+       (specify! state*
          Store
          (-push [_ event]
            (rx/push! input-sb event))
@@ -221,16 +264,7 @@
 
          rx/IDisposable
          (-dispose [_]
-           (rx/dispose! subs)
-           (rx/dispose! subw)
-           (rx/dispose! sube)
            (rx/end! input-sb)))))))
-
-(defn event
-  ([type]
-   (EventRef. type {}))
-  ([type params]
-   (EventRef. type params)))
 
 (defn emit!
   "Emits an event or a collection of them into the default store.
@@ -248,11 +282,3 @@
   as event bus not only with defined events."
   [store]
   (-input-stream store))
-
-(defn data-event
-  "Creates an event instance that only contains data."
-  ([t] (data-event t nil))
-  ([t d]
-   (reify t
-     IDeref
-     (-deref [_] d))))
