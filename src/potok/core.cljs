@@ -188,83 +188,89 @@
   ([{:keys [on-error state resolve]
      :or {on-error handle-error}
      :as params}]
-   (letfn [(process-error [error]
-             (let [res (on-error error)]
-               (if (rx/observable? res) res (rx/empty))))
+   (let [input-sb (rx/subject)
+         failset  (js/WeakSet.)
 
-           (process-watch [input-sm output-sb state event]
-             (let [result (try
-                            (watch event state input-sm)
-                            (catch :default e
-                              (process-error e)))]
+         process-error
+         (fn [error]
+           (let [res (on-error error)]
+             (if (rx/observable? res) res (rx/empty))))
 
-               (cond
-                 (rx/observable? result)
-                 (->> result
-                      (rx/catch process-error)
-                      (rx/subs #(rx/push! output-sb %)))
+         process-watch
+         (fn [input-sm output-sb state event]
+           (let [result (try
+                          (watch event state input-sm)
+                          (catch :default e
+                            (.add ^js failset event)
+                            (process-error e)))]
 
-                 (promise? result)
-                 (->> (rx/from result)
-                      (rx/catch process-error)
-                      (rx/subs #(rx/push! output-sb %)))
+             (cond
+               (rx/observable? result)
+               (->> result
+                    (rx/catch process-error)
+                    (rx/subs #(rx/push! output-sb %)))
 
-                 (nil? result)
-                 nil
+               (promise? result)
+               (->> (rx/from result)
+                    (rx/catch process-error)
+                    (rx/subs #(rx/push! output-sb %)))
 
-                 :else
-                 (js/console.warn "Event returned unexpected object from `watch` method (ignoring)."
-                                  (pr-str {:event event :event-type (type event)})))))
+               (nil? result)
+               nil
 
-           (handle-effect [input-sm state event]
-             (try
-               (effect event state input-sm)
-               (catch :default e
-                 (process-error e))))]
+               :else
+               (js/console.warn "Event returned unexpected object from `watch` method (ignoring)."
+                                (pr-str {:event event :event-type (type event)})))))
 
-     (let [input-sb  (rx/subject)
+         process-effect
+         (fn [input-sm state event]
+           (try
+             (effect event state input-sm)
+             (catch :default e
+               (process-error e))))
 
-           ;; This steps allow an optional layer of indirection:
-           ;; defining events in a multimethod style registry.
-           input-sm  (cond->> (rx/to-observable input-sb)
-                       (or (fn? resolve) (ifn? resolve))
-                       (rx/map #(if (event-ref? %)
-                                  (resolve (:type %) (:params %))
-                                  %)))
-           ;; A shared observable is used here for avoid repeating
-           ;; resolution process for each subscription.
-           input-sm  (rx/share input-sm)
+         ;; This steps allow an optional layer of indirection:
+         ;; defining events in a multimethod style registry.
+         input-sm (cond->> (rx/to-observable input-sb)
+                    (or (fn? resolve) (ifn? resolve))
+                    (rx/map #(if (event-ref? %)
+                               (resolve (:type %) (:params %))
+                               %)))
+         ;; A shared observable is used here for avoid repeating
+         ;; resolution process for each subscription.
+         input-sm (rx/share input-sm)
+         state*   (atom state)]
 
-           state*    (atom state)]
+     ;; a sync state transformation subscription loop
+     (->> (rx/filter update? input-sm)
+          (rx/subs (fn [event]
+                     (try
+                       (swap! state* #(update event %))
+                       (catch :default e
+                         (.add failset event)
+                         (process-error e))))))
 
-       ;; a sync state transformation subscription loop
-       (->> (rx/filter update? input-sm)
-            (rx/subs (fn [event]
-                       (try
-                         (swap! state* #(update event %))
-                         (catch :default e
-                           (process-error e))))))
+     ;; side effectful subscription for watch events
+     (->> (rx/filter watch? input-sm)
+          (rx/filter (fn [e] (not ^boolean (.has ^js failset e))))
+          (rx/subs #(process-watch input-sm input-sb @state* %)))
 
-       ;; side effectful subscription for watch events
-       (->> (rx/filter watch? input-sm)
-            (rx/finalize #(prn "finalize watch?"))
-            (rx/subs #(process-watch input-sm input-sb @state* %)))
+     ;; side effectful subscription for effect events
+     (->> (rx/filter effect? input-sm)
+          (rx/filter (fn [e] (not ^boolean (.has ^js failset e))))
+          (rx/subs #(process-effect input-sm @state* %)))
 
-       ;; side effectful subscription for effect events
-       (->> (rx/filter effect? input-sm)
-            (rx/subs #(handle-effect input-sm @state* %)))
+     (specify! state*
+       Store
+       (-push [_ event]
+         (rx/push! input-sb event))
 
-       (specify! state*
-         Store
-         (-push [_ event]
-           (rx/push! input-sb event))
+       (-input-stream [_]
+         input-sm)
 
-         (-input-stream [_]
-           input-sm)
-
-         rx/IDisposable
-         (-dispose [_]
-           (rx/end! input-sb)))))))
+       rx/IDisposable
+       (-dispose [_]
+         (rx/end! input-sb))))))
 
 (defn emit!
   "Emits an event or a collection of them into the default store.
