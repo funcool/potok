@@ -74,25 +74,25 @@
 
 ;; --- Predicates & Helpers
 
-(defn update?
+(defn ^boolean update?
   "Return `true` when `e` satisfies
   the UpdateEvent protocol."
   [e]
   (satisfies? UpdateEvent e))
 
-(defn watch?
+(defn ^boolean watch?
   "Return `true` when `e` satisfies
   the WatchEvent protocol."
   [e]
   (satisfies? WatchEvent e))
 
-(defn effect?
+(defn ^boolean effect?
   "Return `true` when `e` satisfies
   the EffectEvent protocol."
   [e]
   (satisfies? EffectEvent e))
 
-(defn event?
+(defn ^boolean event?
   "Return `true` if `v` is an event."
   [v]
   (or (satisfies? Event v)
@@ -100,11 +100,11 @@
       (watch? v)
       (effect? v)))
 
-(defn event-ref?
+(defn ^boolean event-ref?
   [v]
   (instance? EventRef v))
 
-(defn promise?
+(defn ^boolean promise?
   "Return `true` if `v` is a promise instance or is a thenable
   object."
   [v]
@@ -120,8 +120,8 @@
 
 (defn type?
   ([t]
-   (fn [v] (= (type v) t)))
-  ([t v]
+   (fn ^boolean [v] (= (type v) t)))
+  (^boolean [t v]
    (= (type v) t)))
 
 
