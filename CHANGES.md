@@ -1,5 +1,9 @@
 # Changelog #
 
+## Version 3.1.0 ##
+
+- Add validator for state (that defaults to `map?`)
+
 ## Version 3.0.0 ##
 
 **BREAKING CHANGES**

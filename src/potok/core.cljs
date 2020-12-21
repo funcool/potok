@@ -185,8 +185,9 @@
   loop and returns a bi-directional rx stream that should
   be used to push new events and subscribe to state changes."
   ([] (store nil))
-  ([{:keys [on-error state resolve]
-     :or {on-error handle-error}
+  ([{:keys [on-error state resolve validate-fn]
+     :or {on-error handle-error
+          validate-fn map?}
      :as params}]
    (let [input-sb (rx/subject)
          failset  (js/WeakSet.)
@@ -245,7 +246,13 @@
      (->> (rx/filter update? input-sm)
           (rx/subs (fn [event]
                      (try
-                       (swap! state* #(update event %))
+                       (swap! state* (fn [state]
+                                       (let [result (update event state)]
+                                         (when-not (validate-fn result)
+                                           (let [hint (str "seems like the event '" (repr-event event) "' "
+                                                           "does not pass validation")]
+                                             (throw (js/Error. hint))))
+                                         result)))
                        (catch :default e
                          (.add failset event)
                          (process-error e))))))
