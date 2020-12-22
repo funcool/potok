@@ -1,5 +1,11 @@
 # Changelog #
 
+## Version 3.2.0 ##
+
+- Start using okulary atom instead of native cljs atom because the
+  native cljs hash-maps does not support js/Symbol keys.
+
+
 ## Version 3.1.0 ##
 
 - Add validator for state (that defaults to `map?`)

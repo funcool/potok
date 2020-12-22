@@ -25,7 +25,8 @@
 (ns potok.core
   "Stream & Events based state management toolkit for ClojureScript."
   (:refer-clojure :exclude [update reify type resolve])
-  (:require [beicon.core :as rx])
+  (:require [beicon.core :as rx]
+            [okulary.core :as l])
   (:require-macros [potok.core :refer [reify]]))
 
 ;; --- Protocols
@@ -240,7 +241,7 @@
          ;; A shared observable is used here for avoid repeating
          ;; resolution process for each subscription.
          input-sm (rx/share input-sm)
-         state*   (atom state)]
+         state*   (l/atom state)]
 
      ;; a sync state transformation subscription loop
      (->> (rx/filter update? input-sm)

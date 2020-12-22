@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>funcool</groupId>
   <artifactId>potok</artifactId>
-  <version>3.1.0</version>
+  <version>3.2.0</version>
   <name>potok</name>
   <description>Reactive Streams based state management toolkit.</description>
   <url>https://github.com/funcool/potok</url>
@@ -26,6 +26,11 @@
       <groupId>funcool</groupId>
       <artifactId>beicon</artifactId>
       <version>2020.12.20-1</version>
+    </dependency>
+    <dependency>
+      <groupId>funcool</groupId>
+      <artifactId>okulary</artifactId>
+      <version>2020.04.14-0</version>
     </dependency>
   </dependencies>
   <repositories>
