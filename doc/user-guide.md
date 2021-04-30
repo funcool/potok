@@ -1,34 +1,25 @@
-= potok
-:toc:
-:!numbered:
-:idseparator: -
-:idprefix:
-:source-highlighter: pygments
-:pygments-style: friendly
-:sectlinks:
+# User Guide
 
-== Introduction
+## Introduction
 
 Potok is a tiny (100LOC) reactive streams based state management toolkit for
 ClojureScript.
 
-
-=== Install
-
-Just add this to your dependencies:
-
-[source, clojure]
-----
-[funcool/potok "2.7.0"]
-----
-
-
-== User Guide
-
 Potok lies on top of two concepts: *events* and *reactive store*.
 
 
-=== Events
+## Install
+
+Just add this to your dependencies:
+
+```clojure
+funcool/potok {:mvn/version "4.0.0"}
+```
+
+
+## Getting Started
+
+### Events
 
 The events are entities that your application will emit in order to send data or
 action to the store. They will be emitted using `potok.core/emit!` function.
@@ -40,61 +31,50 @@ There are three types of events:
 
 Let's see a detailed explanation of each event type:
 
-==== Update Event
+#### Update Event
 
 The *update* event represents the simple synchronous state
 transformation. It just consists of a type defined using *defrecord*,
-implementing a `UpdateEvent` protocol.
+builtin `reify` or the potok provided `reify` helper that already
+implements some additional protocols.
 
 The `update` function receives the current state as argument and
 should return the transformed state. Let's see an example:
 
-[source, clojure]
-----
+```clojure
 (require '[potok.core :as ptk])
+
+(defn increment
+  []
+  (ptk/reify ::increment
+    ptk/UpdateEvent
+    (update [_ state]
+      (update state :counter (fnil inc 0)))))
+
+;; or
 
 (defrecord Increment []
   ptk/UpdateEvent
   (update [_ state]
     (update state :counter (fnil inc 0))))
-----
+
+```
+
+The `::increment` keyword is a type tag that can be used later to
+filter events using the `ptk/type?` higher-order predicate `ptk/type`
+to obtain the type of the instance.
 
 You may be thinking, the signature of the `update` function is very
 similar to a reduce function. And in fact, it does just that the state
 reduction, and it can be defined using a plain ClojureScript function:
 
-[source, clojure]
-----
+```clojure
 (defn increment
   [state]
   (update state :counter (fnil inc 0))
-----
+```
 
-Although it is very simple to define this kind of events as functions,
-the type based events are more recommended, especially when you want
-to pass arguments to the event. Let's see an example:
-
-[source, clojure]
-----
-(defrecord IncrementBy [n]
-  ptk/UpdateEvent
-  (update [_ state]
-    (update state :counter + n)))
-----
-
-The same event would look much uglier if defined using function
-syntax:
-
-[source, clojure]
-----
-(defn increment-by
-  [n]
-  (fn [state]
-    (update state :counter + n)))
-----
-
-
-==== Watch Event
+#### Watch Event
 
 Apart from the simple state transformations, applications usually need
 to perform asynchronous operations such as call remote API, access
@@ -103,22 +83,22 @@ role. They are designed to handle asynchronous operations.
 
 Let's see how it looks:
 
-[source, clojure]
-----
+```clojure
 (require '[beicon.core :as rx])
 
-(defrecord DelayedIncrement []
-  ptk/WatchEvent
-  (watch [_ state stream]
-    (->> (rx/just (->Increment)) ; create a instance of `Increment` event
-         (rx/delay 100))))       ; delay the stream for 100ms
-----
-
+(defn delayed-increment-by
+  [n]
+  (ptk/reify ::delayed-increment-by
+    ptk/WatchEvent
+    (watch [_ state stream]
+      (->> (rx/of (increment-by n)) ; create a instance of `Increment` event
+           (rx/delay 100))))          ; delay the stream for 100ms
+```
 
 The responsibility of the `watch` function is to perform an
 asynchronous operation and return a stream of one or more events. In
 the example, you can observe, that it just returns a stream of one
-`Increment` event instance delayed 100 milliseconds (thus emulating
+`::increment` event instance delayed 100 milliseconds (thus emulating
 some latency).
 
 That stream will be re-injected into the main stream and those events
@@ -131,7 +111,7 @@ needed for a synchronization with other events or just a handling of
 some kind of a cancellation.
 
 
-==== Effect Event
+#### Effect Event
 
 The *effect* event represents a side effectfull action. In the same
 way as the *watch* event, it receives the current state and the main
@@ -139,19 +119,20 @@ stream as arguments.
 
 Let's see how it look:
 
-[source, clojure]
-----
-(defrecord Notify [title message]
-  ptk/EffectEvent
-  (effect [_ state stream]
-    (let [params #js {:body message}]
-      (js/Notification. title params))))
-----
+```clojure
+(defn notify
+  [title message]
+  (ptk/reify ::notify
+    ptk/EffectEvent
+    (effect [_ state stream]
+      (let [params #js {:body message}]
+        (js/Notification. title params)))))
+```
 
 The return value of the `effect` function is completely ignored.
 
 
-=== Store
+### Store
 
 In the previous section we have seen events, the *store* is the object
 that processes them. It has the following responsibilities:
@@ -160,62 +141,40 @@ that processes them. It has the following responsibilities:
 - Process incoming events.
 - Emit the changes using reactive streams.
 
-In the contrast to other similar approaches to implementing store
-(such that re-frame or redux), this approach does not allow to access
-the state directly, you only can watch it and materialize it to some
-reference type like ClojureScript *atom*. This ensures that the state
-can only be transformed using events.
-
 To create store you just need to execute the `potok.core/store`
 function:
 
-[source, clojure]
-----
+```clojure
 (def store (ptk/store))
-----
+```
 
 If no arguments is passed to `store` function, the initial state is
 initialized as `nil`. This is how you can provide an initial state:
 
-[source, clojure]
-----
+```clojure
 (def store (ptk/store {:state {:counter 0}}))
-----
+```
 
-The `store` object from the user perspective is a reactive stream that
-emits the state each time it is transformed.
+The `store` object from the user perspective is an atom that implements
+RX Subject interface. The atom interface allows synchronous acces to the
+latest state and the Subject interface allow emits events into.
 
-Internally it is implemented using *BehaviorSubject* and each new
-subscription always receives the latest state object followed by state
-objects transformed by events.
+You can emit events into the store using the `ptk/emit!` or
+`beicon.core/push!` functions:
 
-In order to be able to access the state, we need to materialize it. A
-good approach is using just an atom to hold the materialized state:
+```clojure
+(ptk/emit! store (increment-by 1))
+```
 
-[source, clojure]
-----
-(defonce state-view
-  (rx/to-atom store))
-----
+Now if you deref(erence) the state, you will see it transformed:
 
-Now that we have created a store, and a materialized view of the
-state. Let's start to emit events:
 
-[source, clojure]
-----
-(ptk/emit! store (->Increment))
-----
-
-Now if you observe the state dereferencing the `state-view` atom, you
-will see it transformed:
-
-[source, clojure]
-----
-@state-view
+```clojure
+@store
 ;; => {:counter 1}
-----
+```
 
-=== Error Handling
+### Error Handling
 
 In many circumstances we found, that exception is raised inside the
 event. For this case *potok* comes with the built-in mechanism for
@@ -224,21 +183,22 @@ handling errors.
 Let's see some code:
 
 [source, clojure]
-----
+```
 (defn- on-error
   [error]
   (js/console.error error))
 
 (def store (ptk/store {:on-error on-error}))
-----
+```
 
 Now, if an exception is raised inside an event it will report it to
-this function. The return value of on-error callback is ignored.
+this function. The return value of on-error callback is ignored with exception
+of `watch` event, where the error handler can return an observable.
 
 
-== Developers Guide
+## Developers Guide
 
-=== Philosophy
+### Philosophy
 
 Five most important rules:
 
@@ -251,13 +211,13 @@ Five most important rules:
 All contributions to _potok_ should keep these important rules in mind.
 
 
-=== Contributing
+### Contributing
 
 Unlike Clojure and other Clojure contributed libraries _potok_ does not have many
 restrictions on contributions. Just open an issue or pull request.
 
 
-=== Source Code
+### Source Code
 
 _potok_ is open source and can be found on
 link:https://github.com/funcool/potok[github].
@@ -265,14 +225,14 @@ link:https://github.com/funcool/potok[github].
 You can clone the public repository with this command:
 
 [source,text]
-----
+```
 git clone https://github.com/funcool/potok
-----
+```
 
 
-== FAQ
+## FAQ
 
-=== What is the motivation behind *potok*?
+### What is the motivation behind *potok*?
 
 My main motivation is just to simplify a number of concepts that user needs to
 learn in order to use one-way-flow state management. Reactive streams fit very
@@ -286,7 +246,7 @@ without the fear of this library becomes unmaintained, easier.
 It is just 100 lines of the pretty well-commented code.
 
 
-=== Can I implement more than one event protocol at the same time?
+### Can I implement more than one event protocol at the same time?
 
 Yes, in fact, it is a very useful approach to performing optimistic
 updates, because the *update* event is always the first processed and
@@ -294,7 +254,7 @@ the *watch* and *effect* events will receive the state already
 transformed by the `update` function.
 
 
-=== How can I use *potok* with React.js based web applications?
+### How can I use *potok* with React.js based web applications?
 
 Very easy, once you have materialized the state into an atom, you can
 consume this atom from any react based toolkit (*rumext*, *reagent*,
@@ -305,13 +265,13 @@ need to define and emit an event for it, instead of direct state atom's
 transformation.
 
 
-===  Are there some real applications using this pattern?
+###  Are there some real applications using this pattern?
 
 Yes, many of them are private, but there is one public:
-link:https://github.com/uxbox/uxbox[uxbox]. It is the pretty big project and it
-demonstrates that this approach scales very well.
+link:https://github.com/penpot/penpot[penpot]. It is the pretty big
+project and it demonstrates that this approach scales very well.
 
-Also, there are some open source projects not connected to the Funcool
+Also, there are some open source projects not connected to the funcool
 organization:
 
 - link:https://github.com/pepe/potok-rumu[potok-rumu] - just example project
@@ -323,34 +283,15 @@ organization:
   template for generating new projects with potok and rum setup
 
 
-== License
+## License
 
 
 _potok_ is licensed under BSD (2-Clause) license:
 
-----
-Copyright (c) 2015-2019 Andrey Antukh <niwi@niwi.nz>
+```
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-----
+Copyright (c) Andrey Antukh <niwi@niwi.nz>
+```
