@@ -1,26 +1,8 @@
-;; Copyright (c) 2015-2021 Andrey Antukh <niwi@niwi.nz>
-;; All rights reserved.
+;; This Source Code Form is subject to the terms of the Mozilla Public
+;; License, v. 2.0. If a copy of the MPL was not distributed with this
+;; file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ;;
-;; Redistribution and use in source and binary forms, with or without
-;; modification, are permitted provided that the following conditions are met:
-;;
-;; * Redistributions of source code must retain the above copyright notice, this
-;;   list of conditions and the following disclaimer.
-;;
-;; * Redistributions in binary form must reproduce the above copyright notice,
-;;   this list of conditions and the following disclaimer in the documentation
-;;   and/or other materials provided with the distribution.
-;;
-;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-;; FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-;; DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-;; SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-;; CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-;; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-;; OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;; Copyright (c) Andrey Antukh <niwi@niwi.nz>
 
 (ns potok.core
   "Stream & Events based state management toolkit for ClojureScript."
@@ -61,18 +43,6 @@
 (defprotocol Event
   (-type [_] "Returns the type of the event."))
 
-;; An abstraction used for send data to the store.
-
-(defprotocol Store
-  (^:private -push [_ event] "Push event into the stream.")
-  (^:private -input-stream [_] "Returns the internal input stream/subject."))
-
-
-;; --- Types
-
-(defrecord EventRef [type params])
-
-
 ;; --- Predicates & Helpers
 
 (defn ^boolean update?
@@ -101,10 +71,6 @@
       (watch? v)
       (effect? v)))
 
-(defn ^boolean event-ref?
-  [v]
-  (instance? EventRef v))
-
 (defn ^boolean promise?
   "Return `true` if `v` is a promise instance or is a thenable
   object."
@@ -125,7 +91,6 @@
   (^boolean [t v]
    (= (type v) t)))
 
-
 ;; --- Constructors
 
 (defn data-event
@@ -136,13 +101,16 @@
      IDeref
      (-deref [_] d))))
 
-(defn event
-  "Create an event reference instance."
-  ([type]
-   (EventRef. type {}))
-  ([type params]
-   (EventRef. type params)))
+(defmulti resolve (fn [type params] type))
+(defmethod resolve :default
+  [type params]
+  (data-event type params))
 
+(defn event
+  ([type]
+   (resolve type nil))
+  ([type params]
+   (resolve type params)))
 
 ;; --- Implementation Details
 
@@ -157,27 +125,23 @@
   (js/console.warn "Using default error handler, consider using your own!")
   (js/console.error error))
 
-(defmulti resolve (fn [type params] type))
-(defmethod resolve :default [type params] (data-event type params))
 
 (def ^:private noop (constantly nil))
 
 ;; --- Public API
 
-
 (defn repr-event
   [event]
   (cond
     (satisfies? Event event)
-    (str "typ: " (pr-str (-type event)))
+    (str "typ:(" (pr-str (-type event)) ")")
 
     (and (fn? event)
          (pos? (count (.-name event))))
-    (str "fn: " (demunge (.-name event)))
+    (str "fn:(" (demunge (.-name event)) ")")
 
     :else
-    (str "unk: " (pr-str event))))
-
+    (str "unk:(" (pr-str event) ")")))
 
 (defn store
   "Start a new store.
@@ -186,7 +150,7 @@
   loop and returns a bi-directional rx stream that should
   be used to push new events and subscribe to state changes."
   ([] (store nil))
-  ([{:keys [on-error state resolve validate-fn]
+  ([{:keys [on-error state validate-fn]
      :or {on-error handle-error
           validate-fn map?}
      :as params}]
@@ -233,11 +197,8 @@
 
          ;; This steps allow an optional layer of indirection:
          ;; defining events in a multimethod style registry.
-         input-sm (cond->> (rx/to-observable input-sb)
-                    (or (fn? resolve) (ifn? resolve))
-                    (rx/map #(if (event-ref? %)
-                               (resolve (:type %) (:params %))
-                               %)))
+         input-sm (rx/to-observable input-sb)
+
          ;; A shared observable is used here for avoid repeating
          ;; resolution process for each subscription.
          input-sm (rx/share input-sm)
@@ -269,13 +230,21 @@
           (rx/subs #(process-effect input-sm @state* %)))
 
      (specify! state*
-       Store
-       (-push [_ event]
-         (rx/push! input-sb event))
+       ;; Implement rxjs subject interface
+       Object
+       (next [_ event]
+         (.next ^js input-sb event))
 
-       (-input-stream [_]
+       (error [_ error]
+         (rx/end! input-sb))
+
+       (complete [_]
+         (rx/end! input-sb))
+
+       (getInputStream [_]
          input-sm)
 
+       ;; Implement the beicon disposable protocol (for convenience)
        rx/IDisposable
        (-dispose [_]
          (rx/end! input-sb))))))
@@ -286,13 +255,13 @@
   If you have instanciated your own store, this function provides
   2-arity that allows specify a user defined store."
   ([store event]
-   (-push store event))
+   (.next ^js store event))
   ([store event & more]
-   (run! (partial -push store) (cons event more))))
+   (run! #(.next ^js store %) (cons event more))))
 
 (defn input-stream
   "Returns the internal input stream of the store. Should
   be used by third party integration that want use store
   as event bus not only with defined events."
   [store]
-  (-input-stream store))
+  (.getInputStream ^js store))

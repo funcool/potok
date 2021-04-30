@@ -1,5 +1,19 @@
 # Changelog #
 
+## Version 4.0.0 ##
+
+This version has some **breaking changes**.
+
+- Remove event-ref abstraction, the resolve function is now used to
+  resolve to correct event instance on creating it using `event`
+  function (a simple wrapper that allows omit props). This will remove
+  the overhead of checking all events if they are IEventRef.
+- Remove custom Store protocol; the store now implements the RX Subject
+  interface.
+- The `repr-event` has changed a little bit its output.
+- Change license to MPL2.0.
+
+
 ## Version 3.2.0 ##
 
 - Start using okulary atom instead of native cljs atom because the

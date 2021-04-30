@@ -17,4 +17,4 @@ pom.xml.asc
 /node_modules
 /nashorn_code_cache
 /.idea
-/rebel_readline_history
+/.rebel_readline_history
