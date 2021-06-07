@@ -13,7 +13,7 @@ Potok lies on top of two concepts: *events* and *reactive store*.
 Just add this to your dependencies:
 
 ```clojure
-funcool/potok {:mvn/version "4.0.0"}
+funcool/potok {:mvn/version "RELEASE"}
 ```
 
 
@@ -182,8 +182,7 @@ handling errors.
 
 Let's see some code:
 
-[source, clojure]
-```
+```clojure
 (defn- on-error
   [error]
   (js/console.error error))
@@ -224,8 +223,7 @@ link:https://github.com/funcool/potok[github].
 
 You can clone the public repository with this command:
 
-[source,text]
-```
+```bash
 git clone https://github.com/funcool/potok
 ```
 

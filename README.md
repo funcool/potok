@@ -1,7 +1,7 @@
 # potok #
 
-Potok is a tiny (100LOC) reactive streams based state management toolkit for
-ClojureScript.
+Potok is a tiny (300LOC) reactive streams based state management
+toolkit for ClojureScript.
 
 [![Travis Badge](https://img.shields.io/travis/funcool/potok/master.svg)](https://travis-ci.org/funcool/potok "Travis Badge")
 

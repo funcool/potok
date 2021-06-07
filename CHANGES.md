@@ -1,5 +1,13 @@
 # Changelog #
 
+## Version 2021.06.07-0
+
+- Change version numbering.
+- Reimplement `reify` macro for avoid unnecesary checks on dev an prod
+  builds.
+- Add alternative deftype macro (used by reify).
+
+
 ## Version 4.0.0 ##
 
 This version has some **breaking changes**.
