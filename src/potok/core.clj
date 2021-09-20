@@ -58,5 +58,12 @@
            ~'potok.core/Event
            (~'-type [_#] ~type)
 
+           ~'cljs.core/IWithMeta
+           (~'-with-meta [~this-sym ~meta-sym]
+             (new ~t ~@locals ~meta-sym))
+
+           ~'cljs.core/IMeta
+           (~'-meta [~this-sym] ~meta-sym)
+
            ~@impls))
        (new ~t ~@locals ~(ana/elide-reader-meta (meta &form))))))
