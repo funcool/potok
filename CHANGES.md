@@ -1,5 +1,11 @@
 # Changelog #
 
+
+## Version 2022.04.28-67
+
+- Refactor internal error handling.
+- Update dependencies
+
 ## Version 2021.06.07-0
 
 - Change version numbering.
