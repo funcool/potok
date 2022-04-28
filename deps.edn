@@ -1,31 +1,31 @@
 {:paths ["src"]
- :deps {funcool/beicon {:mvn/version "2021.04.29-0"}
-        funcool/okulary {:mvn/version "2020.04.14-0"}}
+ :deps {funcool/beicon {:mvn/version "2021.07.05-1"}
+        funcool/okulary {:mvn/version "2022.04.11-16"}}
  :aliases
  {:dev
   {:extra-deps
-   {com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
-    com.bhauman/rebel-readline {:mvn/version "0.1.4"}
-    org.clojure/clojurescript {:mvn/version "1.10.844"}
-    org.clojure/clojure {:mvn/version "1.10.3"}
-    org.clojure/tools.deps.alpha {:mvn/version "0.11.910"}}
+   {com.bhauman/rebel-readline-cljs {:mvn/version "RELEASE"}
+    com.bhauman/rebel-readline {:mvn/version "RELEASE"}
+    org.clojure/clojurescript {:mvn/version "RELEASE"}
+    org.clojure/clojure {:mvn/version "RELEASE"}
+    org.clojure/tools.deps.alpha {:mvn/version "RELEASE"}}
    :extra-paths ["test"]}
 
   :install
   {:exec-fn clojure.tools.cli.api/mvn-install
    :exec-args {:jar "target/potok.jar"}}
 
-  :ancient
-  {:main-opts ["-m" "deps-ancient.deps-ancient"],
-   :extra-deps {deps-ancient/deps-ancient {:mvn/version "RELEASE"}}}
+  :outdated
+  {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}
+                org.slf4j/slf4j-nop {:mvn/version "RELEASE"}}
+   :main-opts ["-m" "antq.core"]}
 
   :codox
-  {:extra-deps {codox/codox {:mvn/version "RELEASE"}
-                org.clojure/tools.reader {:mvn/version "RELEASE"}
-                codox-theme-rdash/codox-theme-rdash {:mvn/version "RELEASE"}}}
+  {:extra-deps
+   {codox/codox {:mvn/version "RELEASE"}
+    org.clojure/tools.reader {:mvn/version "RELEASE"}
+    codox-theme-rdash/codox-theme-rdash {:mvn/version "RELEASE"}}}
 
-  :jar
-  {:replace-deps {com.github.seancorfield/depstar {:mvn/version "RELEASE"}}
-   :exec-fn hf.depstar/jar
-   :exec-args {:jar "target/potok.jar"}}}}
-
+  :build
+  {:extra-deps {io.github.clojure/tools.build {:git/tag "v0.8.1" :git/sha "7d40500"}}
+   :ns-default build}}}

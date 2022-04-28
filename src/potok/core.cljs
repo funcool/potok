@@ -155,7 +155,18 @@
           validate-fn map?}
      :as params}]
    (let [input-sb (rx/subject)
-         failset  (js/WeakSet.)
+         input-sm (-> input-sb rx/to-observable rx/share)
+         state*   (l/atom state)
+
+         process-update
+         (fn [event]
+           (swap! state* (fn [state]
+                           (let [result (update event state)]
+                             (when-not (validate-fn result)
+                               (let [hint (str "seems like the event '" (repr-event event) "' "
+                                               "does not pass validation")]
+                                 (throw (js/Error. hint))))
+                             result))))
 
          process-error
          (fn [error]
@@ -163,23 +174,18 @@
              (if (rx/observable? res) res (rx/empty))))
 
          process-watch
-         (fn [input-sm output-sb state event]
-           (let [result (try
-                          (watch event state input-sm)
-                          (catch :default e
-                            (.add ^js failset event)
-                            (process-error e)))]
-
+         (fn [event]
+           (let [result (watch event @state* input-sm)]
              (cond
                (rx/observable? result)
                (->> result
                     (rx/catch process-error)
-                    (rx/subs #(rx/push! output-sb %)))
+                    (rx/subs #(rx/push! input-sb %)))
 
                (promise? result)
                (->> (rx/from result)
                     (rx/catch process-error)
-                    (rx/subs #(rx/push! output-sb %)))
+                    (rx/subs #(rx/push! input-sb %)))
 
                (nil? result)
                nil
@@ -189,45 +195,23 @@
                                 (pr-str {:event event :event-type (type event)})))))
 
          process-effect
-         (fn [input-sm state event]
+         (fn [event]
+           (effect event @state* input-sm))
+
+         process-event
+         (fn [event]
            (try
-             (effect event state input-sm)
+             (when (update? event)
+               (process-update event))
+             (when (watch? event)
+               (process-watch event))
+             (when (effect? event)
+               (process-effect event))
              (catch :default e
-               (process-error e))))
+               (->> (process-error e)
+                    (rx/subs #(rx/push! input-sb %))))))]
 
-         ;; This steps allow an optional layer of indirection:
-         ;; defining events in a multimethod style registry.
-         input-sm (rx/to-observable input-sb)
-
-         ;; A shared observable is used here for avoid repeating
-         ;; resolution process for each subscription.
-         input-sm (rx/share input-sm)
-         state*   (l/atom state)]
-
-     ;; a sync state transformation subscription loop
-     (->> (rx/filter update? input-sm)
-          (rx/subs (fn [event]
-                     (try
-                       (swap! state* (fn [state]
-                                       (let [result (update event state)]
-                                         (when-not (validate-fn result)
-                                           (let [hint (str "seems like the event '" (repr-event event) "' "
-                                                           "does not pass validation")]
-                                             (throw (js/Error. hint))))
-                                         result)))
-                       (catch :default e
-                         (.add failset event)
-                         (process-error e))))))
-
-     ;; side effectful subscription for watch events
-     (->> (rx/filter watch? input-sm)
-          (rx/filter (fn [e] (not ^boolean (.has ^js failset e))))
-          (rx/subs #(process-watch input-sm input-sb @state* %)))
-
-     ;; side effectful subscription for effect events
-     (->> (rx/filter effect? input-sm)
-          (rx/filter (fn [e] (not ^boolean (.has ^js failset e))))
-          (rx/subs #(process-effect input-sm @state* %)))
+     (rx/subscribe input-sm process-event)
 
      (specify! state*
        ;; Implement rxjs subject interface
