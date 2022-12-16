@@ -1,5 +1,9 @@
 # Changelog #
 
+## Version 2022.12.16-68
+
+- Add `on-event` option
+
 
 ## Version 2022.04.28-67
 

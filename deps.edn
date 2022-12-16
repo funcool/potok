@@ -7,13 +7,8 @@
    {com.bhauman/rebel-readline-cljs {:mvn/version "RELEASE"}
     com.bhauman/rebel-readline {:mvn/version "RELEASE"}
     org.clojure/clojurescript {:mvn/version "RELEASE"}
-    org.clojure/clojure {:mvn/version "RELEASE"}
-    org.clojure/tools.deps.alpha {:mvn/version "RELEASE"}}
+    org.clojure/clojure {:mvn/version "RELEASE"}}
    :extra-paths ["test"]}
-
-  :install
-  {:exec-fn clojure.tools.cli.api/mvn-install
-   :exec-args {:jar "target/potok.jar"}}
 
   :outdated
   {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}
@@ -27,5 +22,5 @@
     codox-theme-rdash/codox-theme-rdash {:mvn/version "RELEASE"}}}
 
   :build
-  {:extra-deps {io.github.clojure/tools.build {:git/tag "v0.8.1" :git/sha "7d40500"}}
+  {:extra-deps {io.github.clojure/tools.build {:git/tag "v0.8.3" :git/sha "0d20256"}}
    :ns-default build}}}

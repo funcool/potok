@@ -150,12 +150,14 @@
   loop and returns a bi-directional rx stream that should
   be used to push new events and subscribe to state changes."
   ([] (store nil))
-  ([{:keys [on-error state validate-fn]
+  ([{:keys [on-error on-event state validate-fn]
      :or {on-error handle-error
           validate-fn map?}
      :as params}]
    (let [input-sb (rx/subject)
-         input-sm (-> input-sb rx/to-observable rx/share)
+         input-sm (cond->> (rx/to-observable input-sb)
+                    (some? on-event) (rx/tap on-event)
+                    :always          (rx/share))
          state*   (l/atom state)
 
          process-update

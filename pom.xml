@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>funcool</groupId>
   <artifactId>potok</artifactId>
-  <version>2021.09.20-0</version>
+  <version>2022.12.16</version>
   <name>potok</name>
   <description>Reactive Streams based state management toolkit.</description>
   <url>https://github.com/funcool/potok</url>
