@@ -6,14 +6,16 @@
   {:extra-deps
    {com.bhauman/rebel-readline-cljs {:mvn/version "RELEASE"}
     com.bhauman/rebel-readline {:mvn/version "RELEASE"}
-    org.clojure/clojurescript {:mvn/version "RELEASE"}
-    org.clojure/clojure {:mvn/version "RELEASE"}}
-   :extra-paths ["test"]}
+    thheller/shadow-cljs {:mvn/version "RELEASE"}}
+   :extra-paths ["test" "dev"]}
 
   :outdated
   {:extra-deps {com.github.liquidz/antq {:mvn/version "RELEASE"}
                 org.slf4j/slf4j-nop {:mvn/version "RELEASE"}}
    :main-opts ["-m" "antq.core"]}
+
+  :shadow-cljs
+  {:main-opts ["-m" "shadow.cljs.devtools.cli"]}
 
   :codox
   {:extra-deps
