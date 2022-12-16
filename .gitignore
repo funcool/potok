@@ -18,3 +18,5 @@ pom.xml.asc
 /nashorn_code_cache
 /.idea
 /.rebel_readline_history
+/.shadow-cljs
+/dev/beicon
