@@ -22,7 +22,7 @@ funcool/potok {:mvn/version "RELEASE"}
 ### Events
 
 The events are entities that your application will emit in order to send data or
-action to the store. They will be emitted using `potok.core/emit!` function.
+action to the store. They will be emitted using `potok.v2.core/emit!` function.
 There are three types of events:
 
 - *update*: that represents a synchronous state transformation.
@@ -42,7 +42,7 @@ The `update` function receives the current state as argument and
 should return the transformed state. Let's see an example:
 
 ```clojure
-(require '[potok.core :as ptk])
+(require '[potok.v2.core :as ptk])
 
 (defn increment
   []
@@ -103,7 +103,7 @@ some latency).
 
 That stream will be re-injected into the main stream and those events
 will be processed in the same way as if you emitted them with
-`potok.core/emit!` function.
+`potok.v2.core/emit!` function.
 
 The additional `stream` parameter to the `watch` function represents
 the main stream where all events will arrive, so you can build logic
@@ -141,7 +141,7 @@ that processes them. It has the following responsibilities:
 - Process incoming events.
 - Emit the changes using reactive streams.
 
-To create store you just need to execute the `potok.core/store`
+To create store you just need to execute the `potok.v2.core/store`
 function:
 
 ```clojure

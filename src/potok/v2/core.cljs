@@ -4,12 +4,12 @@
 ;;
 ;; Copyright (c) Andrey Antukh <niwi@niwi.nz>
 
-(ns potok.core
+(ns potok.v2.core
   "Stream & Events based state management toolkit for ClojureScript."
   (:refer-clojure :exclude [update reify type resolve])
-  (:require [beicon.v2 :as rx]
+  (:require [beicon.v2.core :as rx]
             [okulary.core :as l])
-  (:require-macros [potok.core :refer [reify]]))
+  (:require-macros [potok.v2.core :refer [reify]]))
 
 ;; --- Protocols
 

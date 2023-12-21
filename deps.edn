@@ -1,5 +1,8 @@
 {:paths ["src"]
- :deps {funcool/beicon {:mvn/version "2021.07.05-1"}
+ :deps {funcool/beicon2
+        {:git/tag "v2.0"
+         :git/sha "e7135e0"
+         :git/url "https://github.com/funcool/beicon.git"}
         funcool/okulary {:mvn/version "2022.04.11-16"}}
  :aliases
  {:dev

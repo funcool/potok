@@ -5,7 +5,7 @@
 ;; Copyright (c) Andrey Antukh <niwi@niwi.nz>
 
 
-(ns potok.core
+(ns potok.v2.core
   (:refer-clojure :exclude [reify deftype])
   (:require
    [cljs.core :as c]
@@ -55,7 +55,7 @@
     `(do
        (when-not (leaky-exists? ~(symbol (str ns) (str t)))
          (deftype ~t [~@locals ~meta-sym]
-           ~'potok.core/Event
+           ~'potok.v2.core/Event
            (~'-type [_#] ~type)
 
            ~'cljs.core/IWithMeta
