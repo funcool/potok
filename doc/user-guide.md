@@ -13,9 +13,11 @@ Potok lies on top of two concepts: *events* and *reactive store*.
 Just add this to your dependencies:
 
 ```clojure
-funcool/potok {:mvn/version "RELEASE"}
+funcool/potok2
+{:git/tag "v2.0"
+ :git/sha "2bb377b"
+ :git/url "https://github.com/funcool/potok.git"}
 ```
-
 
 ## Getting Started
 
