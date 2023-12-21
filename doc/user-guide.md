@@ -86,7 +86,7 @@ role. They are designed to handle asynchronous operations.
 Let's see how it looks:
 
 ```clojure
-(require '[beicon.core :as rx])
+(require '[beicon.v2.core :as rx])
 
 (defn delayed-increment-by
   [n]
@@ -162,7 +162,7 @@ RX Subject interface. The atom interface allows synchronous acces to the
 latest state and the Subject interface allow emits events into.
 
 You can emit events into the store using the `ptk/emit!` or
-`beicon.core/push!` functions:
+`beicon.v2.core/push!` functions:
 
 ```clojure
 (ptk/emit! store (increment-by 1))
