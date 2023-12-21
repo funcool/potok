@@ -7,7 +7,7 @@
 (ns potok.core
   "Stream & Events based state management toolkit for ClojureScript."
   (:refer-clojure :exclude [update reify type resolve])
-  (:require [beicon.core :as rx]
+  (:require [beicon.v2 :as rx]
             [okulary.core :as l])
   (:require-macros [potok.core :refer [reify]]))
 
@@ -182,12 +182,12 @@
                (rx/observable? result)
                (->> result
                     (rx/catch process-error)
-                    (rx/subs #(rx/push! input-sb %)))
+                    (rx/subs! #(rx/push! input-sb %)))
 
                (promise? result)
                (->> (rx/from result)
                     (rx/catch process-error)
-                    (rx/subs #(rx/push! input-sb %)))
+                    (rx/subs! #(rx/push! input-sb %)))
 
                (nil? result)
                nil
@@ -211,9 +211,9 @@
                (process-effect event))
              (catch :default e
                (->> (process-error e)
-                    (rx/subs #(rx/push! input-sb %))))))]
+                    (rx/subs! #(rx/push! input-sb %))))))]
 
-     (rx/subscribe input-sm process-event)
+     (rx/sub! input-sm process-event)
 
      (specify! state*
        ;; Implement rxjs subject interface
