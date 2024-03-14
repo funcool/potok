@@ -1,8 +1,8 @@
 (ns potok.core-test
   (:require
    [cljs.test :as t]
-   [beicon.core :as rx]
-   [potok.core :as ptk]))
+   [beicon.v2.core :as rx]
+   [potok.v2.core :as ptk]))
 
 (enable-console-print!)
 

@@ -93,13 +93,21 @@
 
 ;; --- Constructors
 
+(deftype DataEvent [t o]
+  Event
+  (-type [_] t)
+
+  cljs.core/IDeref
+  (-deref [_] o))
+
 (defn data-event
   "Creates an event instance that only contains data."
-  ([t] (data-event t nil))
-  ([t d]
-   (reify t
-     IDeref
-     (-deref [_] d))))
+  ([t] (DataEvent. t nil))
+  ([t o] (DataEvent. t o)))
+
+(defn data-event?
+  [o]
+  (instance? DataEvent o))
 
 (defmulti resolve (fn [type params] type))
 (defmethod resolve :default
