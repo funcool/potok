@@ -42,9 +42,7 @@
 (defmacro reify
   [type & impls]
   (let [t        (with-meta
-                   (gensym
-                    (str "t_"
-                         (str/replace (str (comp/munge ana/*cljs-ns*)) "." "$")))
+                   (gensym (str (name type) "-"))
                    {:anonymous true
                     :cljs.analyzer/no-resolve true})
         meta-sym (gensym "meta")
