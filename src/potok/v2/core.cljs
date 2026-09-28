@@ -162,11 +162,14 @@
      :or {on-error handle-error
           validate-fn map?}
      :as params}]
-   (let [input-sb (rx/subject)
-         input-sm (cond->> (rx/to-observable input-sb)
-                    (some? on-event) (rx/tap on-event)
-                    :always          (rx/share))
-         state*   (l/atom state)
+   (let [input-sb  (rx/subject)
+         input-sm  (cond->> (rx/to-observable input-sb)
+                     (some? on-event) (rx/tap on-event)
+                     :always          (rx/share))
+         state*    (l/atom state)
+
+         ;; Events being processed right now, outermost first
+         in-flight #js []
 
          process-update
          (fn [event]
@@ -210,6 +213,7 @@
 
          process-event
          (fn [event]
+           (.push in-flight event)
            (try
              (when (update? event)
                (process-update event))
@@ -219,7 +223,9 @@
                (process-effect event))
              (catch :default e
                (->> (process-error e)
-                    (rx/subs! #(rx/push! input-sb %))))))]
+                    (rx/subs! #(rx/push! input-sb %))))
+             (finally
+               (.pop in-flight))))]
 
      (rx/sub! input-sm process-event)
 
@@ -237,6 +243,9 @@
 
        (getInputStream [_]
          input-sm)
+
+       (getInFlightEvents [_]
+         (vec in-flight))
 
        ;; Implement the beicon disposable protocol (for convenience)
        rx/IDisposable
@@ -259,3 +268,9 @@
   as event bus not only with defined events."
   [store]
   (.getInputStream ^js store))
+
+(defn in-flight-events
+  "Returns the events the store is processing, outermost first. Events
+  emitted synchronously by a `watch` nest inside the emitting event."
+  [store]
+  (.getInFlightEvents ^js store))
